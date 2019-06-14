@@ -50,6 +50,7 @@ parse' stylesheet tokens = parse' (addRule stylesheet rule) tokens'
 --------
 parseProperties (LeftCurlyBracket:tokens) = parseProperties' tokens
 parseProperties (Whitespace:tokens) = parseProperties tokens
+parseProperties [] = ([], [])
 
 parseProperties' (Whitespace:tokens) = parseProperties' tokens
 parseProperties' (Ident name:tokens)
@@ -57,6 +58,7 @@ parseProperties' (Ident name:tokens)
         concatP appendProp scanValue parseProperties' tokens'
     where appendProp value tail = (name, value):tail
 parseProperties' (RightCurlyBracket:tokens) = ([], tokens)
+parseProperties' [] = ([], [])
 parseProperties' tokens = parseProperties' (skipValue tokens)
 
 --------
@@ -74,6 +76,7 @@ skipAtRule (RightParen:tokens) = RightParen:tokens
 skipAtRule (RightSquareBracket:tokens) = RightSquareBracket:tokens
 
 skipAtRule (_:tokens) = skipAtRule tokens
+skipAtRule [] = []
 
 scanValue (Semicolon:tokens) = ([], tokens)
 scanValue (Whitespace:tokens) = scanValue tokens
