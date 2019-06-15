@@ -1,11 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Stylish.Style.Index (
-        StyleIndex(..),
+        StyleIndex(..), styleIndex,
         rulesForElement
     ) where
 
 -- TODO do performance tests to decide beside between strict/lazy.
 import Data.HashMap.Strict
+import Data.List (nub)
 import Stylish.Parse
 import Stylish.Element
 
@@ -48,11 +49,10 @@ selectorKey (Property prop _ : _) = Property prop Exists
 ----
 
 rulesForElement :: StyleIndex -> Element -> [StyleRule]
-rulesForElement self element = Prelude.foldr (++) [] rules
+rulesForElement self element = nub $ Prelude.foldr (++) [] rules
     where
         get key = lookup' key index
         index = indexed self
-        rules :: [[StyleRule]]
         rules = unindexed self : Prelude.map get (testsForElement element)
 
 testsForElement :: Element -> [SimpleSelector]

@@ -7,6 +7,7 @@ import Data.CSS.Syntax.Tokens
 
 import Stylish.Parse
 import Stylish.Style.Index
+import Stylish.Element
 
 main = hspec spec
 
@@ -68,8 +69,43 @@ spec = do
             parse emptyStyle "a + b {}" `shouldBe` TrivialStyleSheet [
                     StyleRule (Adjacent (Element [Tag "a"]) [Tag "b"]) []
                 ]
+    describe "Style Index" $ do
+        it "Retrieves appropriate styles" $ do
+            let index = addRule styleIndex sampleRule
+            let element = ElementNode {
+                name = "a",
+                parent = Nothing,
+                previous = Nothing,
+                attributes = [
+                    Attribute "class" "external",
+                    Attribute "href" "https://adrian.geek.nz/",
+                    Attribute "id" "mysite"
+                ]
+            }
+            let element2 = ElementNode {
+                name = "b",
+                parent = Just element,
+                previous = Just element, -- Invalid tree, oh well.
+                attributes = []
+            }
+            rulesForElement index element `shouldBe` [sampleRule]
+            rulesForElement index element2 `shouldBe` []
+
+            let rule = StyleRule (Element [Class "external"]) [("color", [Ident "green"])]
+            let index = addRule styleIndex rule
+            rulesForElement index element `shouldBe` [rule]
+            rulesForElement index element2 `shouldBe` []
+
+            let rule = StyleRule (Element [Id "mysite"]) [("color", [Ident "green"])]
+            let index = addRule styleIndex rule
+            rulesForElement index element `shouldBe` [rule]
+            rulesForElement index element2 `shouldBe` []
+
+            let rule = StyleRule (Element [Property "href" $ Prefix "https://"]) [("color", [Ident "green"])]
+            let index = addRule styleIndex rule
+            rulesForElement index element `shouldBe` [rule]
+            rulesForElement index element2 `shouldBe` []
 
 emptyStyle = TrivialStyleSheet []
-linkStyle = TrivialStyleSheet [
-        StyleRule (Element [Tag "a"]) [("color", [Ident "green"])]
-    ]
+linkStyle = TrivialStyleSheet [sampleRule]
+sampleRule = StyleRule (Element [Tag "a"]) [("color", [Ident "green"])]
