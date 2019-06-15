@@ -57,7 +57,7 @@ library
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.9 && <4.10, css-syntax, text
+  build-depends:       base >=4.9 && <4.10, css-syntax, text, unordered-containers, hashable
   
   -- Directories containing source files.
   hs-source-dirs:      src
@@ -71,4 +71,4 @@ test-suite test-stylish
   type:     exitcode-stdio-1.0
   main-is:              Test.hs
   other-modules:        Stylish.Parse
-  build-depends:       base >=4.9 && <4.10, css-syntax, text, hspec, QuickCheck
+  build-depends:       base >=4.9 && <4.10, css-syntax, text, unordered-containers, hashable, hspec, QuickCheck
