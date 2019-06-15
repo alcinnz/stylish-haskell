@@ -20,7 +20,11 @@ class StyleSheet s where
     addAtRule :: s -> Text -> [Token] -> (s, [Token])
     addAtRule self _ tokens = (self, skipAtRule tokens)
 
-data StyleRule = StyleRule [Selector] [(Text, [Token])] deriving (Show, Eq)
+addRules self (selector:selectors, properties) = addRules self' (selectors, properties)
+    where self' = addRule self $ StyleRule selector properties
+addRules self ([], _) = self
+
+data StyleRule = StyleRule Selector [(Text, [Token])] deriving (Show, Eq)
 
 data TrivialStyleSheet = TrivialStyleSheet [StyleRule] deriving (Show, Eq)
 instance StyleSheet TrivialStyleSheet where
@@ -42,8 +46,8 @@ parse' stylesheet [] = stylesheet
 
 parse' stylesheet (AtKeyword kind:tokens) = parse' stylesheet' tokens'
     where (stylesheet', tokens') = addAtRule stylesheet kind tokens
-parse' stylesheet tokens = parse' (addRule stylesheet rule) tokens'
-    where (rule, tokens') = concatP StyleRule parseSelectors parseProperties tokens
+parse' stylesheet tokens = parse' (addRules stylesheet rule) tokens'
+    where (rule, tokens') = concatP (,) parseSelectors parseProperties tokens
 
 --------
 ---- Property parsing

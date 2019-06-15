@@ -3,8 +3,10 @@ module Main where
 
 import Test.Hspec
 import Test.Hspec.QuickCheck
-import Stylish.Parse
 import Data.CSS.Syntax.Tokens
+
+import Stylish.Parse
+import Stylish.Style.Index
 
 main = hspec spec
 
@@ -28,45 +30,46 @@ spec = do
         it "Parses style rules" $ do
             -- Syntax examples from "Head First HTML & CSS with XHTML"
             parse emptyStyle "bedroom { drapes: blue; carpet: wool shag; }" `shouldBe` TrivialStyleSheet [
-                StyleRule [[Tag "bedroom"]] [
+                StyleRule (Element [Tag "bedroom"]) [
                     ("drapes", [Ident "blue"]),
                     ("carpet", [Ident "wool", Ident "shag"])
                 ]]
             parse emptyStyle "  bathroom{tile :1in white;drapes :pink}" `shouldBe` TrivialStyleSheet [
-                StyleRule [[Tag "bathroom"]] [
+                StyleRule (Element [Tag "bathroom"]) [
                     ("tile", [Dimension "1" (NVInteger 1) "in", Ident "white"]),
                     ("drapes", [Ident "pink"])
                 ]]
         it "Parses selectors" $ do
             parse emptyStyle ".class {}" `shouldBe` TrivialStyleSheet [
-                    StyleRule [[Class "class"]] []
+                    StyleRule (Element [Class "class"]) []
                 ]
             parse emptyStyle "*.class {}" `shouldBe` TrivialStyleSheet [
-                    StyleRule [[Class "class"]] []
+                    StyleRule (Element [Class "class"]) []
                 ]
             parse emptyStyle "#id {}" `shouldBe` TrivialStyleSheet [
-                    StyleRule [[Id "id"]] []
+                    StyleRule (Element [Id "id"]) []
                 ]
             parse emptyStyle "[attr] {}" `shouldBe` TrivialStyleSheet [
-                    StyleRule [[Property "attr" Exists]] []
+                    StyleRule (Element [Property "attr" Exists]) []
                 ]
             parse emptyStyle "a , b {}" `shouldBe` TrivialStyleSheet [
-                    StyleRule [[Tag "a"], [Tag "b"]] []
+                    StyleRule (Element [Tag "b"]) [],
+                    StyleRule (Element [Tag "a"]) []
                 ]
             parse emptyStyle "a b {}" `shouldBe` TrivialStyleSheet [
-                    StyleRule [[Tag "a", Descendant, Tag "b"]] []
+                    StyleRule (Descendant (Element [Tag "a"]) [Tag "b"]) []
                 ]
             parse emptyStyle "a > b {}" `shouldBe` TrivialStyleSheet [
-                    StyleRule [[Tag "a", Child, Tag "b"]] []
+                    StyleRule (Child (Element [Tag "a"]) [Tag "b"]) []
                 ]
             parse emptyStyle "a ~ b {}" `shouldBe` TrivialStyleSheet [
-                    StyleRule [[Tag "a", Sibling, Tag "b"]] []
+                    StyleRule (Sibling (Element [Tag "a"]) [Tag "b"]) []
                 ]
             parse emptyStyle "a + b {}" `shouldBe` TrivialStyleSheet [
-                    StyleRule [[Tag "a", Adjacent, Tag "b"]] []
+                    StyleRule (Adjacent (Element [Tag "a"]) [Tag "b"]) []
                 ]
 
 emptyStyle = TrivialStyleSheet []
 linkStyle = TrivialStyleSheet [
-        StyleRule [[Tag "a"]] [("color", [Ident "green"])]
+        StyleRule (Element [Tag "a"]) [("color", [Ident "green"])]
     ]

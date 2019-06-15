@@ -8,23 +8,27 @@ import Stylish.Parse.Utils
 
 import Data.Text.Internal (Text(..))
 
-type Selector = [SimpleSelector]
-data SimpleSelector = Tag Text | Id Text | Class Text | Property Text PropertyTest |
-    Child | Descendant | Adjacent | Sibling
+-- type Selector = [SimpleSelector]
+data Selector = Element [SimpleSelector] |
+    Child Selector [SimpleSelector] | Descendant Selector [SimpleSelector] |
+    Adjacent Selector [SimpleSelector] | Sibling Selector [SimpleSelector]
+    deriving (Show, Eq)
+data SimpleSelector = Tag Text | Id Text | Class Text | Property Text PropertyTest
     deriving (Show, Eq)
 data PropertyTest = Exists | Equals Text | Suffix Text | Prefix Text | Substring Text |
     Include Text | Dash Text
     deriving (Show, Eq)
 
 parseSelectors :: [Token] -> ([Selector], [Token])
-parseSelectors tokens = concatP (:) parseSelector parseSelectorsTail $ skipSpace tokens
+parseSelectors tokens = concatP (:) parseCompound parseSelectorsTail $ skipSpace tokens
 parseSelectorsTail (Comma:tokens) = parseSelectors tokens
 parseSelectorsTail tokens = ([], tokens)
+parseCompound tokens = parseCombinators (Element selector) tokens'
+    where (selector, tokens') = parseSelector tokens
 
 parseSelector' op tokens = (op:selector, tokens')
     where (selector, tokens') = parseSelector tokens
 
-parseSelector :: [Token] -> (Selector, [Token])
 parseSelector (Delim '*':tokens) = parseSelector tokens
 parseSelector (Ident tag:tokens) = parseSelector' (Tag tag) tokens
 parseSelector (Hash _ id:tokens) = parseSelector' (Id id) tokens
@@ -32,23 +36,31 @@ parseSelector (Delim '.':Ident class_:tokens) = parseSelector' (Class class_) to
 parseSelector (LeftSquareBracket:Ident prop:tokens) =
         concatP appendPropertySel parsePropertySel parseSelector tokens
     where appendPropertySel test selector = Property prop test : selector
-
-parseSelector (Whitespace:tokens) = parseCombinator $ skipSpace tokens
-parseSelector (Delim c:tokens) | c `elem` ">~+" = parseCombinator $ Delim c:tokens
 parseSelector tokens = ([], tokens)
 
-parseCombinator (Delim '>':tokens) = parseSelector' Child $ skipSpace tokens
-parseCombinator (Delim '~':tokens) = parseSelector' Sibling $ skipSpace tokens
-parseCombinator (Delim '+':tokens) = parseSelector' Adjacent $ skipSpace tokens
+parseCombinators' selector tokens = parseCombinators selector' tokens'
+    where (selector', tokens') = parseCombinator selector tokens
+parseCombinators selector (Whitespace:tokens) = parseCombinators' selector tokens
+parseCombinators selector tokens@(Delim c:_) = parseCombinators' selector tokens
+parseCombinators selector tokens = (selector, tokens)
+
+parseCombinator' cb selector tokens = (cb selector selector', tokens')
+    where (selector', tokens') = parseSelector $ skipSpace tokens
+parseCombinator :: Selector -> [Token] -> (Selector, [Token])
+parseCombinator selector (Whitespace:tokens) = parseCombinator selector tokens
+parseCombinator selector (Delim '>':tokens) = parseCombinator' Child selector tokens
+parseCombinator selector (Delim '~':tokens) = parseCombinator' Sibling selector tokens
+parseCombinator selector (Delim '+':tokens) = parseCombinator' Adjacent selector tokens
 -- Take special care to avoid adding a trailing Descendant when not needed.
-parseCombinator tokens@(LeftCurlyBracket:_) = ([], tokens)
-parseCombinator tokens@(RightCurlyBracket:_) = ([], tokens)
-parseCombinator tokens@(RightSquareBracket:_) = ([], tokens)
-parseCombinator tokens@(Comma:_) = ([], tokens)
+parseCombinator selector tokens@(LeftCurlyBracket:_) = (selector, tokens)
+parseCombinator selector tokens@(RightCurlyBracket:_) = (selector, tokens)
+parseCombinator selector tokens@(RightSquareBracket:_) = (selector, tokens)
+parseCombinator selector tokens@(Comma:_) = (selector, tokens)
 
-parseCombinator tokens@(RightParen:_) = ([], tokens)
+parseCombinator selector tokens@(RightParen:_) = (selector, tokens)
+parseCombinator selector [] = (selector, [])
 
-parseCombinator tokens = parseSelector' Descendant tokens
+parseCombinator selector tokens = parseCombinator' Descendant selector tokens
 
 parsePropertySel (RightSquareBracket:tokens) = (Exists, tokens)
 parsePropertySel (Delim '=':tokens) = parsePropertyVal (Equals) tokens
