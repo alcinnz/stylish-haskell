@@ -1,13 +1,17 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Stylish.Style.Index (
-        StyleIndex
+        StyleIndex(..),
+        rulesForElement
     ) where
 
 -- TODO do performance tests to decide beside between strict/lazy.
 import Data.HashMap.Strict
 import Stylish.Parse
+import Stylish.Element
 
 import Data.Hashable
-import Data.Text (unpack)
+import Data.Text (unpack, pack)
+import Data.Text.Internal (Text(..))
 
 data StyleIndex = StyleIndex {
     indexed :: HashMap SimpleSelector [StyleRule],
@@ -40,6 +44,29 @@ selectorKey (tok@(Tag _) : _) = tok
 selectorKey (tok@(Id _) : _) = tok
 selectorKey (tok@(Class _) : _) = tok
 selectorKey (Property prop _ : _) = Property prop Exists
+
+----
+
+rulesForElement :: StyleIndex -> Element -> [StyleRule]
+rulesForElement self element = Prelude.foldr (++) [] rules
+    where
+        get key = lookup' key index
+        index = indexed self
+        rules :: [[StyleRule]]
+        rules = unindexed self : Prelude.map get (testsForElement element)
+
+testsForElement :: Element -> [SimpleSelector]
+testsForElement element =
+    (Tag $ pack $ name element) : (testsForAttributes $ attributes element)
+testsForAttributes (Attribute "class" value:attrs) =
+    (Prelude.map (\s -> Class $ pack s) $ words value) ++
+        (Property "class" Exists : testsForAttributes attrs)
+testsForAttributes (Attribute "id" value:attrs) =
+    (Prelude.map (\s -> Id $ pack s) $ words value) ++
+        (Property "id" Exists : testsForAttributes attrs)
+testsForAttributes (Attribute name _:attrs) =
+    Property (pack name) Exists : testsForAttributes attrs
+testsForAttributes [] = []
 
 -- Implement hashable for SimpleSelector here because it proved challenging to automatically derive it.
 instance Hashable SimpleSelector where
