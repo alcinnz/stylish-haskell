@@ -8,6 +8,7 @@ import Data.CSS.Syntax.Tokens
 import Stylish.Parse
 import Stylish.Style.Index
 import Stylish.Element
+import Stylish.Style.Interpret
 
 main = hspec spec
 
