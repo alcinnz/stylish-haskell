@@ -36,6 +36,7 @@ lowerInner (Property name test:s) = (tag, (name, compileAttrTest test):tail)
     where (tag, tail) = lowerInner s
 lowerInner [] = (Nothing, [])
 
+compileAttrTest Exists = matched
 compileAttrTest (Equals val) = (== (unpack val))
 compileAttrTest (Suffix val) = isSuffixOf $ unpack val
 compileAttrTest (Prefix val) = isPrefixOf $ unpack val
@@ -73,4 +74,4 @@ testAttr expected test next attrs@(Attribute name value : attrs')
 testAttr _ _ _ [] = False
 
 hasWord expected value = expected `elem` words value
-hasLang _ _ = False -- TODO add support for this.
+hasLang expected value = expected == value || isPrefixOf (expected ++ "-") value
