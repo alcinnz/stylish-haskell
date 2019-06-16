@@ -106,6 +106,107 @@ spec = do
             let index = addRule styleIndex rule
             rulesForElement index element `shouldBe` [rule]
             rulesForElement index element2 `shouldBe` []
+    describe "Selector Compiler" $ do
+        it "Correctly evaluates selectors" $ do
+            let parent = ElementNode {
+                name = "a",
+                parent = Nothing,
+                previous = Nothing,
+                attributes = [
+                    Attribute "class" "external secure link",
+                    Attribute "href" "https://adrian.geek.nz/index.html",
+                    Attribute "id" "mysite",
+                    Attribute "lang" "en-US"
+                ]
+            }
+            let sibling = ElementNode {
+                name = "img",
+                parent = Just parent,
+                previous = Nothing,
+                attributes = []
+            }
+            let child = ElementNode {
+                name = "b",
+                parent = Just parent,
+                previous = Just sibling,
+                attributes = []
+            }
+
+            let selector = compile (Element [Tag "a"])
+            selector parent `shouldBe` True
+            selector sibling `shouldBe` False
+            selector child `shouldBe` False
+
+            let selector = compile (Element [Class "external"])
+            selector parent `shouldBe` True
+            selector sibling `shouldBe` False
+            selector child `shouldBe` False
+
+            let selector = compile (Element [Id "mysite"])
+            selector parent `shouldBe` True
+            selector sibling `shouldBe` False
+            selector child `shouldBe` False
+
+            let selector = compile (Element [Property "lang" Exists])
+            selector parent `shouldBe` True
+            selector sibling `shouldBe` False
+            selector child `shouldBe` False
+
+            let selector = compile (Element [Property "class" $ Include "secure"])
+            selector parent `shouldBe` True
+            selector sibling `shouldBe` False
+            selector child `shouldBe` False
+
+            let selector = compile (Element [Property "href" $ Prefix "https://"])
+            selector parent `shouldBe` True
+            selector sibling `shouldBe` False
+            selector child `shouldBe` False
+
+            let selector = compile (Element [Property "href" $ Suffix ".html"])
+            selector parent `shouldBe` True
+            selector sibling `shouldBe` False
+            selector child `shouldBe` False
+
+            let selector = compile (Element [Property "href" $ Substring ".geek.nz"])
+            selector parent `shouldBe` True
+            selector sibling `shouldBe` False
+            selector child `shouldBe` False
+
+            let selector = compile (Element [Property "lang" $ Dash "en"])
+            selector parent `shouldBe` True
+            selector sibling `shouldBe` False
+            selector child `shouldBe` False
+
+            let selector = compile (Element [Property "lang" $ Dash "en-US"])
+            selector parent `shouldBe` True
+            selector sibling `shouldBe` False
+            selector child `shouldBe` False
+
+            let selector = compile (Element [Property "lang" $ Dash "en-UK"])
+            selector parent `shouldBe` False
+            selector sibling `shouldBe` False
+            selector child `shouldBe` False
+
+            -- TODO These could be tested better.
+            let selector = compile $ Child (Element [Tag "a"]) [Tag "b"]
+            selector parent `shouldBe` False
+            selector sibling `shouldBe` False
+            selector child `shouldBe` True
+
+            let selector = compile $ Descendant (Element [Tag "a"]) [Tag "b"]
+            selector parent `shouldBe` False
+            selector sibling `shouldBe` False
+            selector child `shouldBe` True
+
+            let selector = compile $ Sibling (Element [Tag "img"]) [Tag "b"]
+            selector parent `shouldBe` False
+            selector sibling `shouldBe` False
+            selector child `shouldBe` True
+
+            let selector = compile $ Adjacent (Element [Tag "img"]) [Tag "b"]
+            selector parent `shouldBe` False
+            selector sibling `shouldBe` False
+            selector child `shouldBe` True
 
 emptyStyle = TrivialStyleSheet []
 linkStyle = TrivialStyleSheet [sampleRule]
