@@ -57,7 +57,7 @@ rulesForElement self element = nub $ Prelude.foldr (++) [] rules
 
 testsForElement :: Element -> [SimpleSelector]
 testsForElement element =
-    (Tag $ pack $ name element) : (testsForAttributes $ attributes element)
+    (Tag $ name element) : (testsForAttributes $ attributes element)
 testsForAttributes (Attribute "class" value:attrs) =
     (Prelude.map (\s -> Class $ pack s) $ words value) ++
         (Property "class" Exists : testsForAttributes attrs)
@@ -65,7 +65,7 @@ testsForAttributes (Attribute "id" value:attrs) =
     (Prelude.map (\s -> Id $ pack s) $ words value) ++
         (Property "id" Exists : testsForAttributes attrs)
 testsForAttributes (Attribute name _:attrs) =
-    Property (pack name) Exists : testsForAttributes attrs
+    Property name Exists : testsForAttributes attrs
 testsForAttributes [] = []
 
 -- Implement hashable for SimpleSelector here because it proved challenging to automatically derive it.
