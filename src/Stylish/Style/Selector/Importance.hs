@@ -18,6 +18,7 @@ splitProperties (prop@(name, value):rest)
 
 data ImportanceSplitter a = ImportanceSplitter a
 instance RuleStore inner => RuleStore (ImportanceSplitter inner) where
+    new = ImportanceSplitter new
     addStyleRule (ImportanceSplitter self) priority rule =
             ImportanceSplitter $ addStyleRule (
                 addStyleRule self (negate priority) $ buildRule important

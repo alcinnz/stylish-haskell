@@ -12,6 +12,7 @@ import Stylish.Style.Selector.Interpret
 import Stylish.Style.Selector.Common
 import Stylish.Style.Selector
 
+main :: IO ()
 main = hspec spec
 
 spec = do
@@ -210,6 +211,8 @@ spec = do
             selector sibling `shouldBe` False
             selector child `shouldBe` True
 
+styleIndex :: StyleIndex
+styleIndex = new
 emptyStyle = TrivialStyleSheet []
 linkStyle = TrivialStyleSheet [sampleRule]
 sampleRule = StyleRule (Element [Tag "a"]) [("color", [Ident "green"])]

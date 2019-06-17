@@ -6,6 +6,7 @@ import Stylish.Element
 import Stylish.Parse
 
 class RuleStore a where
+    new :: a
     addStyleRule :: a -> Int -> StyleRule' -> a
     lookupRules :: a -> Element -> [StyleRule']
 

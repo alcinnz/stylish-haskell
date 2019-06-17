@@ -11,24 +11,30 @@ import Stylish.Style.Selector.Common
 
 import Stylish.Parse (StyleSheet(..))
 
--- TODO do performance tests to decide beside between strict/lazy.
+-- TODO do performance tests to decide beside between strict/lazy,
+--      or is another Map implementation better?
 import Data.HashMap.Strict
+import Data.Text.Internal (Text(..))
+import Data.CSS.Syntax.Tokens
 
-ruleStore = ImportanceSplitter $ OrderedRuleStore (InterpretedRuleStore styleIndex) 0
+type QueryableStyleSheet = QueryableStyleSheet' (ImportanceSplitter (
+        OrderedRuleStore (InterpretedRuleStore StyleIndex)
+    ))
 
-data QueryableStyleSheet store = QueryableStyleSheet {
+data QueryableStyleSheet' store = QueryableStyleSheet' {
     store :: store,
     priority :: Int -- author vs user agent vs user styles
 }
 
-queryableStyleSheet = QueryableStyleSheet {store = ruleStore, priority = 0}
+queryableStyleSheet :: QueryableStyleSheet
+queryableStyleSheet = QueryableStyleSheet' {store = new, priority = 0}
 
-instance RuleStore s => StyleSheet (QueryableStyleSheet s) where
-    addRule self@(QueryableStyleSheet store priority) rule = self {
+instance RuleStore s => StyleSheet (QueryableStyleSheet' s) where
+    addRule self@(QueryableStyleSheet' store priority) rule = self {
             store = addStyleRule store priority $ styleRule' rule
         }
 
-queryRules (QueryableStyleSheet store _) el = lookupRules store el
+queryRules (QueryableStyleSheet' store _) el = lookupRules store el
 
 --------
 ---- Cascade

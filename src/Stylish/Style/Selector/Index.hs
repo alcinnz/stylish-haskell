@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Stylish.Style.Selector.Index (
-        StyleIndex(..), styleIndex,
+        StyleIndex(..),
         rulesForElement
     ) where
 
@@ -20,12 +20,11 @@ data StyleIndex = StyleIndex {
     unindexed :: [StyleRule']
 }
 
-styleIndex = StyleIndex {indexed = empty, unindexed = []}
-
 lookup' :: SimpleSelector -> HashMap SimpleSelector [a] -> [a]
 lookup' = lookupDefault []
 
 instance RuleStore StyleIndex where
+    new = StyleIndex {indexed = empty, unindexed = []}
     addStyleRule self _ rule | [] == properties rule = self
         | otherwise = addRuleForSelector self rule $ simpleSelector $ selector rule
     lookupRules self element = nub $ Prelude.foldr (++) [] rules

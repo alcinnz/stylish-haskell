@@ -83,6 +83,7 @@ hasLang expected value = expected == value || isPrefixOf (expected ++ "-") value
 --------
 data InterpretedRuleStore inner = InterpretedRuleStore inner
 instance RuleStore inner => RuleStore (InterpretedRuleStore inner) where
+    new = InterpretedRuleStore new
     addStyleRule (InterpretedRuleStore self) priority rule =
         InterpretedRuleStore $ addStyleRule self priority $ rule {
             compiledSelector = compile $ selector rule

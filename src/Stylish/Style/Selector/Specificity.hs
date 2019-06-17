@@ -27,6 +27,7 @@ add (a, b, c) (x, y, z) = (a + x, b + y, c + z)
 data OrderedRuleStore inner = OrderedRuleStore inner Int
 
 instance RuleStore inner => RuleStore (OrderedRuleStore inner) where
+    new = OrderedRuleStore new 0
     addStyleRule (OrderedRuleStore self count) priority rule = OrderedRuleStore (
             addStyleRule self priority $ rule {
                 rank = (priority, computeSpecificity $ selector rule, count)
