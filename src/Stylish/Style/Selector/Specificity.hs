@@ -1,5 +1,5 @@
 module Stylish.Style.Selector.Specificity(
-        OrderedRuleStore
+        OrderedRuleStore(..)
     ) where
 
 import Stylish.Parse.Selector

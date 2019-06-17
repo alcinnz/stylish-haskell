@@ -9,8 +9,8 @@ import Stylish.Parse
 import Stylish.Style.Selector.Index
 import Stylish.Element
 import Stylish.Style.Selector.Interpret
-import Stylish.Style.Selector.Specificity
 import Stylish.Style.Selector.Common
+import Stylish.Style.Selector
 
 main = hspec spec
 
