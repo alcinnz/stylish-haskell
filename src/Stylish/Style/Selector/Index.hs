@@ -9,14 +9,15 @@ import Data.HashMap.Strict
 import Data.List (nub)
 import Stylish.Parse
 import Stylish.Element
+import Stylish.Style.Selector.Common
 
 import Data.Hashable
 import Data.Text (unpack, pack)
 import Data.Text.Internal (Text(..))
 
 data StyleIndex = StyleIndex {
-    indexed :: HashMap SimpleSelector [StyleRule],
-    unindexed :: [StyleRule]
+    indexed :: HashMap SimpleSelector [StyleRule'],
+    unindexed :: [StyleRule']
 }
 
 styleIndex = StyleIndex {indexed = empty, unindexed = []}
@@ -24,9 +25,19 @@ styleIndex = StyleIndex {indexed = empty, unindexed = []}
 lookup' :: SimpleSelector -> HashMap SimpleSelector [a] -> [a]
 lookup' = lookupDefault []
 
-instance StyleSheet StyleIndex where
-    addRule self (StyleRule _ []) = self
-    addRule self rule@(StyleRule selector _) = addRuleForSelector self rule $ simpleSelector selector
+instance RuleStore StyleIndex where
+    addStyleRule self _ rule | [] == properties rule = self
+        | otherwise = addRuleForSelector self rule $ simpleSelector $ selector rule
+    lookupRules self element = nub $ Prelude.foldr (++) [] rules
+        where
+            get key = lookup' key index
+            index = indexed self
+            rules = unindexed self : Prelude.map get (testsForElement element)
+
+rulesForElement :: StyleIndex -> Element -> [StyleRule] -- For testing
+rulesForElement self element = Prelude.map inner $ lookupRules self element
+
+---
 
 simpleSelector (Element s) = s
 simpleSelector (Child _ s) = s
@@ -47,13 +58,6 @@ selectorKey (tok@(Class _) : _) = tok
 selectorKey (Property prop _ : _) = Property prop Exists
 
 ----
-
-rulesForElement :: StyleIndex -> Element -> [StyleRule]
-rulesForElement self element = nub $ Prelude.foldr (++) [] rules
-    where
-        get key = lookup' key index
-        index = indexed self
-        rules = unindexed self : Prelude.map get (testsForElement element)
 
 testsForElement :: Element -> [SimpleSelector]
 testsForElement element =

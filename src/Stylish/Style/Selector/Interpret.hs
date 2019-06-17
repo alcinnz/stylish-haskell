@@ -1,10 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Stylish.Style.Selector.Interpret(
-        compile, SelectorFunc(..)
+        compile, SelectorFunc(..),
+        InterpretedRuleStore(..)
     ) where
 
 import Stylish.Parse.Selector
 import Stylish.Element
+import Stylish.Style.Selector.Common
 
 import Data.Text.Internal (Text(..))
 import Data.Text (unpack)
@@ -75,3 +77,15 @@ testAttr _ _ _ [] = False
 
 hasWord expected value = expected `elem` words value
 hasLang expected value = expected == value || isPrefixOf (expected ++ "-") value
+
+--------
+---- RuleStore wrapper
+--------
+data InterpretedRuleStore inner = InterpretedRuleStore inner
+instance RuleStore inner => RuleStore (InterpretedRuleStore inner) where
+    addStyleRule (InterpretedRuleStore self) priority rule =
+        InterpretedRuleStore $ addStyleRule self priority $ rule {
+            compiledSelector = compile $ selector rule
+        }
+    lookupRules (InterpretedRuleStore self) el = filter call $ lookupRules self el
+        where call (StyleRule' _ test _) = test el

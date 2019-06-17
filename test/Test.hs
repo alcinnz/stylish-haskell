@@ -10,6 +10,7 @@ import Stylish.Style.Selector.Index
 import Stylish.Element
 import Stylish.Style.Selector.Interpret
 import Stylish.Style.Selector.Specificity
+import Stylish.Style.Selector.Common
 
 main = hspec spec
 
@@ -73,7 +74,7 @@ spec = do
                 ]
     describe "Style Index" $ do
         it "Retrieves appropriate styles" $ do
-            let index = addRule styleIndex sampleRule
+            let index = addStyleRule styleIndex 0 $ styleRule' sampleRule
             let element = ElementNode {
                 name = "a",
                 parent = Nothing,
@@ -94,17 +95,17 @@ spec = do
             rulesForElement index element2 `shouldBe` []
 
             let rule = StyleRule (Element [Class "external"]) [("color", [Ident "green"])]
-            let index = addRule styleIndex rule
+            let index = addStyleRule styleIndex 0 $ styleRule' rule
             rulesForElement index element `shouldBe` [rule]
             rulesForElement index element2 `shouldBe` []
 
             let rule = StyleRule (Element [Id "mysite"]) [("color", [Ident "green"])]
-            let index = addRule styleIndex rule
+            let index = addStyleRule styleIndex 0 $ styleRule' rule
             rulesForElement index element `shouldBe` [rule]
             rulesForElement index element2 `shouldBe` []
 
             let rule = StyleRule (Element [Property "href" $ Prefix "https://"]) [("color", [Ident "green"])]
-            let index = addRule styleIndex rule
+            let index = addStyleRule styleIndex 0 $ styleRule' rule
             rulesForElement index element `shouldBe` [rule]
             rulesForElement index element2 `shouldBe` []
     describe "Selector Compiler" $ do

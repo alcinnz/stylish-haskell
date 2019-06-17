@@ -1,8 +1,10 @@
 module Stylish.Style.Selector.Specificity(
-        computeSpecificity
+        OrderedRuleStore
     ) where
 
 import Stylish.Parse.Selector
+import Stylish.Style.Selector.Common
+import Data.List
 
 computeSpecificity :: Selector -> (Int, Int, Int)
 computeSpecificity (Element selector) = computeSpecificity' selector
@@ -19,3 +21,15 @@ computeSpecificity' [] = (0, 0, 0)
 
 add :: (Int, Int, Int) -> (Int, Int, Int) -> (Int, Int, Int)
 add (a, b, c) (x, y, z) = (a + x, b + y, c + z)
+
+---
+
+data OrderedRuleStore inner = OrderedRuleStore inner Int
+
+instance RuleStore inner => RuleStore (OrderedRuleStore inner) where
+    addStyleRule (OrderedRuleStore self count) priority rule = OrderedRuleStore (
+            addStyleRule self priority $ rule {
+                rank = (priority, computeSpecificity $ selector rule, count)
+            }
+        ) (count + 1)
+    lookupRules (OrderedRuleStore self _) el = sort $ lookupRules self el
