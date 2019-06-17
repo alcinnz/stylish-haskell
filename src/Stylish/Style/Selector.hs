@@ -11,6 +11,9 @@ import Stylish.Style.Selector.Common
 
 import Stylish.Parse (StyleSheet(..))
 
+-- TODO do performance tests to decide beside between strict/lazy.
+import Data.HashMap.Strict
+
 ruleStore = ImportanceSplitter $ OrderedRuleStore (InterpretedRuleStore styleIndex) 0
 
 data QueryableStyleSheet store = QueryableStyleSheet {
@@ -26,3 +29,11 @@ instance RuleStore s => StyleSheet (QueryableStyleSheet s) where
         }
 
 queryRules (QueryableStyleSheet store _) el = lookupRules store el
+
+--------
+---- Cascade
+--------
+
+cascadeRules rules = cascadeProperties $ concat $ Prelude.map properties rules
+
+cascadeProperties ((name, value):props) = insert name value $ cascadeProperties props
