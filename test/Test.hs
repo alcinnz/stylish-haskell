@@ -6,9 +6,9 @@ import Test.Hspec.QuickCheck
 import Data.CSS.Syntax.Tokens
 
 import Stylish.Parse
-import Stylish.Style.Index
+import Stylish.Style.Selector.Index
 import Stylish.Element
-import Stylish.Style.Interpret
+import Stylish.Style.Selector.Interpret
 
 main = hspec spec
 

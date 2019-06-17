@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Stylish.Style.Interpret(
+module Stylish.Style.Selector.Interpret(
         compile, SelectorFunc(..)
     ) where
 

@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Stylish.Style.Index (
+module Stylish.Style.Selector.Index (
         StyleIndex(..), styleIndex,
         rulesForElement
     ) where
