@@ -1,0 +1,108 @@
+-- This file gives a bit of an indication of what might be involved in defining CSS properties in Stylish Haskell.
+-- Though this is very rough, extremely incomplete, and isn't even valid Haskell.
+-- It depends on an output type being defined.
+
+longhand _ self "align-content" [Ident "stretch"] = Just self {alignContent = FlexAlign.Stretch}
+longhand _ self "align-content" [Ident "center"] = Just self {alignContent = FlexAlign.Center}
+longhand _ self "align-content" [Ident "flex-start"] = Just self {alignContent = FlexAlign.FlexStart}
+longhand _ self "align-content" [Ident "flex-end"] = Just self {alignContent = FlexAlign.FlexEnd}
+longhand _ self "align-content" [Ident "space-between"] = Just self {alignContent = FlexAlign.SpaceBetween}
+longhand _ self "align-content" [Ident "space-around"] = Just self {alignContent = FlexAlign.SpaceAround}
+longhand p self "align-content" v = genericProperty p v alignContent >>= \val -> self {alignContent = val}
+
+parseAlignItem [Ident "stretch"] = Just AlignItem.Stretch
+parseAlignItem [Ident "stretch"] = Just AlignItem.Center
+parseAlignItem [Ident "flex-start"] = Just AlignItem.FlexStart
+parseAlignItem [Ident "flex-end"] = Just AlignItem.FlexEnd
+parseAlignItem [Ident "baseline"] = Just AlignItem.Baseline
+parseAlignItem _ = Nothing
+
+longhand _ self "align-items" value | Just val <- parseAlignItem value = Just self {alignItems = val}
+longhand parent self "align-items" value =
+        genericProperty parent value alignItem >>= \val -> self {alignContent = val}
+
+longhand _ self "align-self" value | Just val <- parseAlignItem value = Just self {alignSelf = val}
+longhand parent self "align-self" value = do
+        genericProperty parent value alignSelf >>= \val -> self {alignSelf = val}
+
+shorthand _ "animation" = sequenceShorthand ["animation-name", "animation-duration",
+        "animation-timing-function", "animation-delay", "animation-iteration-count",
+        "animation-duration", "animation-fill-mode", "animation-play-state"]
+
+timeProperty _ _ [Dimension _ number "s"] = Just $ d number
+timeProperty _ _ [Dimension _ number "ms"] = Just (d number * 1000)
+timeProperty parent getter value = genericProperty parent value getter
+
+longhand p self "animation-delay" v = timeProperty p v animationDelay >>= \val -> self {animationDelay = val}
+
+longhand _ self "animation-direction" [Ident "normal"] = Just self {animationDirection = Direction.Normal}
+longhand _ self "animation-direction" [Ident "reverse"] = Just self {animationDirection = Direction.Reverse}
+longhand _ self "animation-direction" [Ident "alternate"] = Just self {animationDirection = Direction.Alternate}
+longhand _ self "animation-direction" [Ident "alternate-reverse"] =
+        Just self {animationDirection = DIrection.AlternateReverse}
+longhand p self "animation-direction" v =
+        genericProperty p v animationDirection >>= \val -> self {animationDirection = val}
+
+longhand p self "animation-duration" v = 
+        timeProperty p v animationDuration >>= \val -> self {animationDuration = val}
+
+longhand _ self "animation-fill-mode" [Ident "none"] = Just self {animationFillMode = FillMode.None}
+longhand _ self "animation-fill-mode" [Ident "forwards"] =
+        Just self {animationFillMode = FillMode.Forwards}
+longhand _ self "animation-fill-mode" [Ident "backwards"] =
+        Just self {animationFillMode = FillMode.Backwards}
+longhand _ self "animation-fill-mode" [Ident "both"] = Just self {animationFillMode = FillMode.Both}
+longhand p self "animation-fill-mode" v =
+        genericProperty p v animationFillMode >>= \val -> self {animationFillMode = val}
+
+longhand _ self "animation-iteration-count" [Number _ (NVInteger val)] =
+        Just self {animationIterationCount = Just val}
+longhand _ self "animation-iteration-count" [Ident "infinite"] =
+        Just self {animationIterationCount = Nothing}
+longhand p self "animation-iteration-count" v =
+        genericProperty p v animationIterationCount >>= \val -> self {animationIterationCount = val}
+
+longhand _ self "animation-name" [Ident val] = Just self {animation = lookupKeyframe val}
+longhand p self "animation-name" v = genericProperty p v animation >>= \val -> self {animation = val}
+
+longhand _ self "animation-play-state" [Ident "puased"] = Just self {animating = False}
+longhand _ self "animation-play-state" [Ident "running"] = Just self {animating = True}
+longhand p self "animation-play-state" v = genericProperty p v animating >>= \val -> self {animating = val}
+
+longhand _ self "animation-timing-function" [Ident "linear"] = Just self {animationTiming = Linear}
+longhand _ self "animation-timing-function" [Ident "ease"] = Just self {animationTiming = Ease}
+longhand _ self "animation-timing-function" [Ident "ease-in"] = Just self {animationTiming = EaseIn}
+longhand _ self "animation-timing-function" [Ident "ease-out"] = Just self {animationTiming = EaseOut}
+longhand _ self "animation-timing-function" [Ident "ease-in-out"] = Just self {animationTiming = EaseInOut}
+longhand _ self "animation-timing-function" [Ident "step-start"] = Just self {animationTiming = StepStart}
+longhand _ self "animation-timing-function" [Ident "step-end"] = Just self {animationTiming = StepEnd}
+longhand _ self "animation-timing-function" [Function "steps"]:value
+    | [Number _ (NVInteger count), Ident "start"] <- function value =
+        Just self {animationTiming = StepsStart count}
+    | [Number _ (NVInteger count), Ident "end"] <- function value =
+        Just self {animationTiming = StepsEnd count}
+longhand _ self "animation-timing-function" [Function "cubic-bezier"]:value
+    | [Number _ w, Number _ x, Number _ y, Number _ z] <- function value =
+        Just self {animationTiming = CubicBezier (d w) (d x) (d y) (d z)}
+longhand p self "animationTimingFunction" v =
+        genericProperty p v animationTiming >>= \val -> self {animationTiming = val}
+
+-- Utilities used:
+genericProperty _ [Ident "initial"] getter = Just getter temp
+genericProperty parent [Ident "inherit"] getter = Just getter parent
+genericProperty _ _ _ = Nothing
+
+sequenceShorthand properties values = sequenceShorthand' properties $ splitValues values
+splitValues (Func name:values) = (Func name:arguments):splitValues values'
+    where (arguments, values') = scanBlock values
+sequenceShorthand' (prop:props) (value:values)
+    | Just _ <- longhand temp temp prop value = (prop value):sequenceShorthand' props values
+    | otherwise = []
+
+function (arg:Comma:rest) = let (args', rest') = function' rest in (arg:args', rest')
+function args = scanBlock args
+function' (arg:Comma:rest) = let (args', rest') = function' rest in (arg:args', rest')
+function' _ = []
+
+d NVInteger int = fromIntegral int
+d NVScientific sci = toRealFloat sci
