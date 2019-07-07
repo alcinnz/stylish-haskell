@@ -3,6 +3,8 @@ Generic CSS style engine for Haskell, intended to aid the development of new bro
 
 Stylish Haskell implements CSS selection and cascade (but not inheritance) independant of the CSS at-rules and properties understood by the caller. It is intended to ease the development of new browser engines, independant of their output targets.
 
+For more interesting projects see: https://github.io/alcinnz/browser-engine-ganarchy/
+
 ## Why Haskell?
 No matter what you think about Haskell and other functional languages, there are great reasons to choose it for this project.
 
