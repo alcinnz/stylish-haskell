@@ -260,6 +260,16 @@ spec = do
             let rules2 = parse (rules {priority = 2}) "a {color: green !important}" :: QueryableStyleSheet TrivialPropertyParser
             let TrivialPropertyParser style = cascade rules2 el [] temp::TrivialPropertyParser
             style ! "color" `shouldBe` [Ident "green"]
+        it "respects overrides" $ do
+            let el = ElementNode {
+                name = "a",
+                parent = Nothing,
+                previous = Nothing,
+                attributes = [Attribute "class" "link"]
+            }
+            let rules = parse queryable "a {color: red;}"
+            let TrivialPropertyParser style = cascade rules el [("color", [Ident "green"])] temp::TrivialPropertyParser
+            style ! "color" `shouldBe` [Ident "green"]
 
 styleIndex :: StyleIndex
 styleIndex = new
