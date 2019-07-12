@@ -5,12 +5,13 @@ import Test.Hspec
 import Test.Hspec.QuickCheck
 import Data.CSS.Syntax.Tokens
 
-import Stylish.Parse
-import Stylish.Style.Selector.Index
-import Stylish.Element
-import Stylish.Style.Selector.Interpret
-import Stylish.Style.Selector.Common
-import Stylish.Style.Selector
+import Data.CSS.Syntax.StyleSheet
+import Data.CSS.Syntax.Selector
+
+import Data.CSS.Style.Common
+import Data.CSS.Style.Selector.Index
+import Data.CSS.Style.Selector.Interpret
+import Data.CSS.Style
 
 main :: IO ()
 main = hspec spec

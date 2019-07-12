@@ -6,7 +6,7 @@ module Data.CSS.Syntax.StyleSheet (
 
 import Data.CSS.Syntax.Tokens
 import Data.CSS.Syntax.Selector
-import Data.CSS.Syntax.StylishUtils
+import Data.CSS.Syntax.StylishUtil
 
 import Data.Text.Internal (Text(..))
 

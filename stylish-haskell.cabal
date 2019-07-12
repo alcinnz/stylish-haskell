@@ -48,7 +48,7 @@ cabal-version:       >=1.10
 
 library
   -- Modules exported by the library.
-  -- exposed-modules:     Stylish.Parse
+  -- exposed-modules:     Data.CSS.Syntax.StyleSheet, Data.CSS.Syntax.Selector, Data.CSS.Style
   
   -- Modules included in this library but not exported.
   -- other-modules:       
@@ -70,5 +70,5 @@ test-suite test-stylish
   default-language:     Haskell2010
   type:     exitcode-stdio-1.0
   main-is:              Test.hs
-  other-modules:        Stylish.Parse
+  other-modules:        Data.CSS.Syntax.StyleSheet, Data.CSS.Syntax.Selector, Data.CSS.Style
   build-depends:       base >=4.9 && <4.10, css-syntax, text, unordered-containers, hashable, hspec, QuickCheck

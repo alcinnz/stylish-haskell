@@ -4,7 +4,7 @@ module Data.CSS.Syntax.Selector(
     ) where
 
 import Data.CSS.Syntax.Tokens
-import Data.CSS.Syntax.StylishUtils
+import Data.CSS.Syntax.StylishUtil
 
 import Data.Text.Internal (Text(..))
 

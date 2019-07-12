@@ -2,7 +2,7 @@ module Data.CSS.Style.Selector.Specificity(
         OrderedRuleStore(..)
     ) where
 
-import Stylish.Parse.Selector
+import Data.CSS.Syntax.Selector
 import Data.CSS.Style.Common
 import Data.List
 

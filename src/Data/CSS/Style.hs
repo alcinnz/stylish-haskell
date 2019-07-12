@@ -9,6 +9,7 @@ import Data.CSS.Style.Selector.Interpret
 import Data.CSS.Style.Selector.Specificity
 import Data.CSS.Style.Importance
 import Data.CSS.Style.Common
+import Data.CSS.Syntax.StyleSheet (StyleSheet(..))
 
 -- TODO do performance tests to decide beside between strict/lazy,
 --      or is another Map implementation better?
@@ -58,7 +59,7 @@ class PropertyParser a where
 cascade :: PropertyParser p => QueryableStyleSheet p -> Element -> p -> p
 cascade self el parent = dispatch parent parent $ toList $ cascadeRules $ queryRules self el
 
-dispatch parent child (name, value):props
+dispatch parent child ((name, value):props)
     | Just child' <- longhand parent child name value = dispatch parent child' props
     | otherwise = dispatch parent child props
 

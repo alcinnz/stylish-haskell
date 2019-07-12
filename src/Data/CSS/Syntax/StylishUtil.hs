@@ -1,4 +1,4 @@
-module Data.CSS.Syntax.StylishUtils(
+module Data.CSS.Syntax.StylishUtil(
         concatP, capture, skipSpace,
         scanBlock, skipBlock, scanInner
     ) where
