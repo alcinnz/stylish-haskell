@@ -13,6 +13,7 @@ splitProperties (prop@(name, value):rest)
             (unimportant, (name, reverse value'):important)
         | otherwise = (prop:unimportant, important)
     where (unimportant, important) = splitProperties rest
+splitProperties [] = ([], [])
 
 data ImportanceSplitter a = ImportanceSplitter a
 instance RuleStore inner => RuleStore (ImportanceSplitter inner) where

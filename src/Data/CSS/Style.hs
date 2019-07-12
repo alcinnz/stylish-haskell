@@ -1,7 +1,9 @@
 module Data.CSS.Style(
         QueryableStyleSheet(..), queryableStyleSheet,
         queryRules,
-        PropertyParser(..), cascade
+        PropertyParser(..), cascade,
+        TrivialPropertyParser(..),
+        Element(..), Attribute(..)
     ) where
 
 import Data.CSS.Style.Selector.Index
@@ -15,6 +17,7 @@ import Data.CSS.Syntax.StyleSheet (StyleSheet(..))
 --      or is another Map implementation better?
 import Data.HashMap.Strict
 import Data.CSS.Syntax.Tokens
+import Data.Text (unpack)
 
 type QueryableStyleSheet parser = QueryableStyleSheet' (ImportanceSplitter (
         PropertyExpander parser (OrderedRuleStore (InterpretedRuleStore StyleIndex))
@@ -40,9 +43,9 @@ queryRules (QueryableStyleSheet' store _ _) el = lookupRules store el
 ---- Cascade
 --------
 
-cascadeRules rules = cascadeProperties $ concat $ Prelude.map properties rules
+cascadeRules overrides rules = cascadeProperties overrides $ concat $ Prelude.map properties rules
 
-cascadeProperties ((name, value):props) = insert name value $ cascadeProperties props
+cascadeProperties overrides props = fromList (props ++ overrides)
 
 --------
 ---- Dispatch to property definitions
@@ -56,12 +59,13 @@ class PropertyParser a where
     -- longhand parent self name value
     longhand :: a -> a -> Text -> [Token] -> Maybe a
 
-cascade :: PropertyParser p => QueryableStyleSheet p -> Element -> p -> p
-cascade self el parent = dispatch parent parent $ toList $ cascadeRules $ queryRules self el
+cascade :: PropertyParser p => QueryableStyleSheet p -> Element -> [(Text, [Token])] -> p -> p
+cascade self el overrides parent = dispatch parent parent $ toList $ cascadeRules overrides $ queryRules self el
 
 dispatch parent child ((name, value):props)
     | Just child' <- longhand parent child name value = dispatch parent child' props
     | otherwise = dispatch parent child props
+dispatch _ child [] = child
 
 --- Verify syntax during parsing, so invalid properties don't interfere with cascade.
 data PropertyExpander parser inner = PropertyExpander parser inner
@@ -76,3 +80,13 @@ expandRule parser rule = rule {inner = StyleRule selector $ expandProperties par
 expandProperties parser ((name, value):props) =
         shorthand parser name value ++ expandProperties parser props
 expandProperties _ [] = []
+
+--------
+---- Testing utility
+--------
+
+data TrivialPropertyParser = TrivialPropertyParser (HashMap String [Token])
+instance PropertyParser TrivialPropertyParser where
+    temp = TrivialPropertyParser empty
+    longhand _ (TrivialPropertyParser self) key value =
+        Just $ TrivialPropertyParser $ insert (unpack key) value self

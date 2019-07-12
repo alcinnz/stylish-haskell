@@ -3,8 +3,9 @@ module Main where
 
 import Test.Hspec
 import Test.Hspec.QuickCheck
-import Data.CSS.Syntax.Tokens
+import Data.HashMap.Strict
 
+import Data.CSS.Syntax.Tokens
 import Data.CSS.Syntax.StyleSheet
 import Data.CSS.Syntax.Selector
 
@@ -212,8 +213,22 @@ spec = do
             selector sibling `shouldBe` False
             selector child `shouldBe` True
 
+    describe "Style resolution" $ do
+        it "respects selector specificity" $ do
+            let el = ElementNode {
+                name = "a",
+                parent = Nothing,
+                previous = Nothing,
+                attributes = [Attribute "class" "link"]
+            }
+            let rules = parse queryable "a.link {color: green} a {color: red}"
+            let TrivialPropertyParser style = cascade rules el [] temp::TrivialPropertyParser
+            style ! "color" `shouldBe` [Ident "green"]
+
 styleIndex :: StyleIndex
 styleIndex = new
+queryable :: QueryableStyleSheet TrivialPropertyParser
+queryable = queryableStyleSheet
 emptyStyle = TrivialStyleSheet []
 linkStyle = TrivialStyleSheet [sampleRule]
 sampleRule = StyleRule (Element [Tag "a"]) [("color", [Ident "green"])]
