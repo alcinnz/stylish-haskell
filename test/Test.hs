@@ -224,6 +224,42 @@ spec = do
             let rules = parse queryable "a.link {color: green} a {color: red}"
             let TrivialPropertyParser style = cascade rules el [] temp::TrivialPropertyParser
             style ! "color" `shouldBe` [Ident "green"]
+        it "respects syntax order" $ do
+            let el = ElementNode {
+                name = "a",
+                parent = Nothing,
+                previous = Nothing,
+                attributes = [Attribute "class" "link"]
+            }
+            let rules = parse queryable "a {color: red; color: green}"
+            let TrivialPropertyParser style = cascade rules el [] temp::TrivialPropertyParser
+            style ! "color" `shouldBe` [Ident "green"]
+
+            let rules = parse queryable "a {color: red} a {color: green}"
+            let TrivialPropertyParser style = cascade rules el [] temp::TrivialPropertyParser
+            style ! "color" `shouldBe` [Ident "green"]
+        it "respects stylesheet precedence" $ do
+            let el = ElementNode {
+                name = "a",
+                parent = Nothing,
+                previous = Nothing,
+                attributes = [Attribute "class" "link"]
+            }
+            let rules = parse (queryable {priority = 1}) "a {color: green}"
+            let rules2 = parse (rules {priority = 2}) "a {color: red}" :: QueryableStyleSheet TrivialPropertyParser
+            let TrivialPropertyParser style = cascade rules2 el [] temp::TrivialPropertyParser
+            style ! "color" `shouldBe` [Ident "green"]
+
+            let el = ElementNode {
+                name = "a",
+                parent = Nothing,
+                previous = Nothing,
+                attributes = [Attribute "class" "link"]
+            }
+            let rules = parse (queryable {priority = 1}) "a {color: red}"
+            let rules2 = parse (rules {priority = 2}) "a {color: green !important}" :: QueryableStyleSheet TrivialPropertyParser
+            let TrivialPropertyParser style = cascade rules2 el [] temp::TrivialPropertyParser
+            style ! "color" `shouldBe` [Ident "green"]
 
 styleIndex :: StyleIndex
 styleIndex = new

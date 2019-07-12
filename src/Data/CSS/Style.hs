@@ -1,5 +1,5 @@
 module Data.CSS.Style(
-        QueryableStyleSheet(..), queryableStyleSheet,
+        QueryableStyleSheet(..), QueryableStyleSheet'(..), queryableStyleSheet,
         queryRules,
         PropertyParser(..), cascade,
         TrivialPropertyParser(..),
