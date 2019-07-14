@@ -52,7 +52,8 @@ parse' stylesheet tokens = parse' (addRules stylesheet rule) tokens'
 --------
 parseProperties (LeftCurlyBracket:tokens) = parseProperties' tokens
 parseProperties (Whitespace:tokens) = parseProperties tokens
-parseProperties (_:tokens) = ([], tokens)
+-- This error recovery is a bit overly conservative, but it's simple.
+parseProperties (_:tokens) = ([], skipAtRule tokens)
 parseProperties [] = ([], [])
 
 parseProperties' (Whitespace:tokens) = parseProperties' tokens

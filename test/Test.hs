@@ -270,6 +270,13 @@ spec = do
             let rules = parse queryable "a {color: red;}"
             let TrivialPropertyParser style = cascade rules el [("color", [Ident "green"])] temp::TrivialPropertyParser
             style ! "color" `shouldBe` [Ident "green"]
+    describe "Parser freezes" $ do
+        it "does not regress" $ do
+            -- TODO handle psuedoelements
+            parse emptyStyle "output::before {content: 'Output'; pitch: high}"
+                `shouldBe` TrivialStyleSheet [
+                    StyleRule (Element [Tag "output"]) []
+                ]
 
 styleIndex :: StyleIndex
 styleIndex = new
