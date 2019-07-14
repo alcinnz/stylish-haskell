@@ -61,7 +61,7 @@ library
   
   -- Other library packages from which modules are imported.
   build-depends:       base >=4.9 && <4.10,
-                       stylish-haskell >= 0.2.1,
+                       stylish-haskell >= 0.2.2,
                        xml-conduit, text, containers,
                        network-uri
   
