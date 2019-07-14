@@ -16,7 +16,7 @@ data Element = ElementNode {
     name :: Text,
     attributes :: [Attribute] -- in sorted order.
 }
-data Attribute = Attribute Text String
+data Attribute = Attribute Text String deriving (Eq, Ord)
 
 class RuleStore a where
     new :: a

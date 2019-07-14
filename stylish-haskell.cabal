@@ -10,7 +10,7 @@ name:                stylish-haskell
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             0.1.0
+version:             0.2.0
 
 -- A short (one-line) description of the package.
 synopsis:            Apply CSS styles to a document tree.
@@ -51,7 +51,9 @@ library
   exposed-modules:     Data.CSS.Syntax.StyleSheet, Data.CSS.Syntax.Selector, Data.CSS.Style
   
   -- Modules included in this library but not exported.
-  -- other-modules:       
+  other-modules:       Data.CSS.Syntax.StylishUtil,
+                       Data.CSS.Style.Importance, Data.CSS.Style.Common,
+                       Data.CSS.Style.Selector.Index, Data.CSS.Style.Selector.Interpret, Data.CSS.Style.Selector.Specificity
   
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:    
