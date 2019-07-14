@@ -51,7 +51,7 @@ cabal-version:       >=1.10
 
 library
   -- Modules exported by the library.
-  -- exposed-modules:     
+  exposed-modules:     Data.HTML2CSS
   
   -- Modules included in this library but not exported.
   -- other-modules:       
@@ -60,7 +60,10 @@ library
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.9 && <4.10
+  build-depends:       base >=4.9 && <4.10,
+                       stylish-haskell >= 0.2.1,
+                       xml-conduit, text, containers,
+                       network-uri
   
   -- Directories containing source files.
   hs-source-dirs:      src
