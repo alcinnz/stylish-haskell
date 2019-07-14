@@ -60,8 +60,8 @@ strContent (_:rest) = strContent rest
 strContent [] = ""
 
 ---- Styling
-traverseStyles :: PropertyParser s => (s -> [s] -> s) -> (Txt.Text -> s) -> 
-        QueryableStyleSheet s -> XML.Element -> s
+traverseStyles :: PropertyParser s => (s -> [o] -> o) -> (s -> Txt.Text -> o) ->
+        QueryableStyleSheet s -> XML.Element -> o
 traverseStyles = traverseStyles' Nothing temp Nothing
 traverseStyles' parent parentStyle previous builder textBuilder stylesheet el@(
         XML.Element _ _ children
@@ -73,7 +73,7 @@ traverseStyles' parent parentStyle previous builder textBuilder stylesheet el@(
         overrides = [] -- TODO
 
         traverseChildren prev (XML.NodeContent txt:nodes) =
-            textBuilder txt : traverseChildren prev nodes
+            textBuilder style txt : traverseChildren prev nodes
         traverseChildren prev (XML.NodeElement el:nodes) =
             traverseStyles' maybeEl style prev builder textBuilder stylesheet el :
                 traverseChildren (Just $ elToStylish el maybeEl prev) nodes
