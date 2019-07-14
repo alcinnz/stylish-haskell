@@ -16,16 +16,16 @@ import Data.CSS.Style
 import Network.URI
 
 ---- Constants
-cssPriorityAgent = 1
-cssPriorityUser = 2
-cssPriorityAuthor = 3
+cssPriorityAgent styles = styles {priority = 1}
+cssPriorityUser styles = styles {priority = 2}
+cssPriorityAuthor styles = styles {priority = 3}
 
 ---- Parsing
 externalStyles :: PropertyParser s => QueryableStyleSheet s -> (M.Map XML.Name Txt.Text -> Bool) ->
         XML.Element -> (URI -> IO Txt.Text) -> IO (QueryableStyleSheet s)
 externalStyles stylesheet testMedia html loadURL = do
     css <- externalStyles' testMedia html loadURL
-    return $ foldl parse stylesheet {priority = cssPriorityAuthor} css
+    return $ foldl parse (cssPriorityAuthor stylesheet) css
 externalStyles' testMedia html loadURL = go $ linkedStyles' testMedia html
     where -- TODO parallelise loads
         go (link:links) = do
@@ -43,7 +43,7 @@ linkedStyles' testMedia (XML.Element _ _ children) =
     concat [linkedStyles' testMedia el | XML.NodeElement el <- children]
 
 internalStyles testMedia stylesheet html =
-    foldl parse (stylesheet {priority = cssPriorityAuthor}) $ internalStyles' testMedia html
+    foldl parse (cssPriorityAuthor stylesheet) $ internalStyles' testMedia html
 internalStyles' testMedia (XML.Element (XML.Name "style"_ _) attrs children)
     | testMedia attrs = [strContent children]
 internalStyles' testMedia (XML.Element _ _ children) =
