@@ -52,6 +52,7 @@ parse' stylesheet tokens = parse' (addRules stylesheet rule) tokens'
 --------
 parseProperties (LeftCurlyBracket:tokens) = parseProperties' tokens
 parseProperties (Whitespace:tokens) = parseProperties tokens
+parseProperties (_:tokens) = ([], tokens)
 parseProperties [] = ([], [])
 
 parseProperties' (Whitespace:tokens) = parseProperties' tokens
