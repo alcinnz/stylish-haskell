@@ -276,7 +276,22 @@ spec = do
             parse emptyStyle "output::before {content: 'Output'; pitch: high}"
                 `shouldBe` TrivialStyleSheet [
                     StyleRule (Element [Tag "output"]) []
+                ] -- Turned out to just be incorrect parsing
+            parse emptyStyle "input, output {content: attr(value)}"
+                `shouldBe` TrivialStyleSheet [
+                    StyleRule (Element [Tag "output"]) [
+                        ("content", [Function "attr", Ident "value", RightParen])
+                    ],
+                    StyleRule (Element [Tag "input"]) [
+                        ("content", [Function "attr", Ident "value", RightParen])
+                    ]
                 ]
+        it "paren balancing" $ do
+            scanValue [RightParen] `shouldBe` ([], [RightParen])
+            scanValue [LeftParen] `shouldBe` ([LeftParen], [])
+            scanValue [Function "fn", LeftParen] `shouldBe` ([Function "fn", LeftParen], [])
+            scanValue [Function "fn", Ident "arg", LeftParen] `shouldBe`
+                ([Function "fn", Ident "arg", LeftParen], [])
 
 styleIndex :: StyleIndex
 styleIndex = new

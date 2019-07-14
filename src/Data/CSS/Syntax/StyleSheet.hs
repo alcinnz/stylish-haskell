@@ -1,7 +1,9 @@
 module Data.CSS.Syntax.StyleSheet (
         parse, TrivialStyleSheet(..),
         StyleSheet(..), skipAtRule,
-        StyleRule(..)
+        StyleRule(..),
+        -- for testing
+        scanValue
     ) where
 
 import Data.CSS.Syntax.Tokens
@@ -73,6 +75,7 @@ skipAtRule (Semicolon:tokens) = tokens
 skipAtRule (LeftCurlyBracket:tokens) = skipBlock tokens
 
 skipAtRule (LeftParen:tokens) = skipAtRule $ skipBlock tokens
+skipAtRule (Function _:tokens) = skipAtRule $ skipBlock tokens
 skipAtRule (LeftSquareBracket:tokens) = skipAtRule $ skipBlock tokens
 -- To ensure parens are balanced, should already be handled.
 skipAtRule (RightCurlyBracket:tokens) = RightCurlyBracket:tokens
@@ -85,9 +88,10 @@ skipAtRule [] = []
 scanValue (Semicolon:tokens) = ([], tokens)
 scanValue (Whitespace:tokens) = scanValue tokens
 
-scanValue (LeftCurlyBracket:tokens) = scanInner tokens scanValue
-scanValue (LeftParen:tokens) = scanInner tokens scanValue
-scanValue (LeftSquareBracket:tokens) = scanInner tokens scanValue
+scanValue tokens@(LeftCurlyBracket:_) = scanInner tokens scanValue
+scanValue tokens@(LeftParen:_) = scanInner tokens scanValue
+scanValue tokens@(Function _:_) = scanInner tokens scanValue
+scanValue tokens@(LeftSquareBracket:_) = scanInner tokens scanValue
 -- To ensure parens are balanced, should already be handled.
 scanValue (RightCurlyBracket:tokens) = ([], RightCurlyBracket:tokens)
 scanValue (RightParen:tokens) = ([], RightParen:tokens)
