@@ -1,7 +1,9 @@
 module Data.CSS.Syntax.StyleSheet (
-        parse, TrivialStyleSheet(..),
+        parse, parse', TrivialStyleSheet(..),
         StyleSheet(..), skipAtRule,
         StyleRule(..),
+        -- For parsing at-rules, HTML "style" attribute, etc.
+        parseProperties, parseProperties',
         -- for testing
         scanValue
     ) where

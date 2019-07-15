@@ -12,6 +12,7 @@ import qualified Data.Text as Txt
 import qualified Text.XML as XML
 import Data.CSS.Syntax.StyleSheet
 import Data.CSS.Style
+import Data.CSS.Syntax.Tokens (tokenize)
 
 import Network.URI
 
@@ -64,13 +65,15 @@ traverseStyles :: PropertyParser s => (s -> [o] -> o) -> (s -> Txt.Text -> o) ->
         QueryableStyleSheet s -> XML.Element -> o
 traverseStyles = traverseStyles' Nothing temp Nothing
 traverseStyles' parent parentStyle previous builder textBuilder stylesheet el@(
-        XML.Element _ _ children
+        XML.Element _ attrs children
     ) = builder style $ traverseChildren Nothing children
     where
         stylishEl = elToStylish el parent previous
         maybeEl = Just stylishEl
         style = cascade stylesheet stylishEl overrides parentStyle
-        overrides = [] -- TODO
+        overrides | Just styleAttr <- "style" `M.lookup` attrs =
+                fst $ parseProperties' $ tokenize styleAttr
+            | otherwise = []
 
         traverseChildren prev (XML.NodeContent txt:nodes) =
             textBuilder style txt : traverseChildren prev nodes
