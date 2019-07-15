@@ -16,15 +16,15 @@ computeSpecificity (Sibling upSel sel) = computeSpecificity upSel `add` computeS
 
 computeSpecificity' :: [SimpleSelector] -> Vec
 computeSpecificity' (Tag _:sel) = computeSpecificity' sel `add` (0, 0, 1)
+computeSpecificity' (Psuedoelement _:sel) = computeSpecificity' sel `add` (0, 0, 1)
 computeSpecificity' (Class _:sel) = computeSpecificity' sel `add` (0, 1, 0)
+computeSpecificity' (Psuedoclass _ _:sel) = computeSpecificity' sel `add` (0, 1, 0)
 computeSpecificity' (Property _ _:sel) = computeSpecificity' sel `add` (0, 1, 0)
 computeSpecificity' (Id _:sel) = computeSpecificity' sel `add` (1, 0, 0)
 computeSpecificity' [] = (0, 0, 0)
 
 add :: Vec -> Vec -> Vec
 add (a, b, c) (x, y, z) = (a + x, b + y, c + z)
-
----
 
 data OrderedRuleStore inner = OrderedRuleStore inner Int
 

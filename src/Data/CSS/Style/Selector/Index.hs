@@ -11,6 +11,7 @@ import Data.CSS.Style.Common
 
 import Data.Hashable
 import Data.Text (unpack, pack)
+import Data.CSS.Syntax.Tokens (serialize) -- for easy hashing
 
 data StyleIndex = StyleIndex {
     indexed :: HashMap SimpleSelector [StyleRule'],
@@ -54,7 +55,7 @@ selectorKey (tok@(Tag _) : _) = Just tok
 selectorKey (tok@(Id _) : _) = Just tok
 selectorKey (tok@(Class _) : _) = Just tok
 selectorKey (Property prop _ : _) = Just $ Property prop Exists
---selectorKey (_ : tokens) = selectorKey tokens
+selectorKey (_ : tokens) = selectorKey tokens
 selectorKey [] = Nothing
 
 ----
@@ -80,6 +81,9 @@ instance Hashable SimpleSelector where
     hashWithSalt seed (Class class_) = seed `hashWithSalt` (2::Int) `hashWithSalt` unpack class_
     hashWithSalt seed (Property prop test) =
         seed `hashWithSalt` (3::Int) `hashWithSalt` unpack prop `hashWithSalt` test
+    hashWithSalt seed (Psuedoclass p args) =
+        seed `hashWithSalt` (4::Int) `hashWithSalt` p `hashWithSalt` serialize args
+    hashWithSalt seed (Psuedoelement p) = seed `hashWithSalt` (5::Int) `hashWithSalt` p
 
 instance Hashable PropertyTest where
     hashWithSalt seed Exists = seed `hashWithSalt` (0::Int)

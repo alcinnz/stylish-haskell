@@ -13,7 +13,8 @@ data Selector = Element [SimpleSelector] |
     Child Selector [SimpleSelector] | Descendant Selector [SimpleSelector] |
     Adjacent Selector [SimpleSelector] | Sibling Selector [SimpleSelector]
     deriving (Show, Eq)
-data SimpleSelector = Tag Text | Id Text | Class Text | Property Text PropertyTest
+data SimpleSelector = Tag Text | Id Text | Class Text | Property Text PropertyTest |
+    Psuedoclass Text [Token] | Psuedoelement Text
     deriving (Show, Eq)
 data PropertyTest = Exists | Equals Text | Suffix Text | Prefix Text | Substring Text |
     Include Text | Dash Text
@@ -40,6 +41,11 @@ parseSelector (Delim '.':Ident class_:tokens) = parseSelector' (Class class_) to
 parseSelector (LeftSquareBracket:Ident prop:tokens) =
         concatP appendPropertySel parsePropertySel parseSelector tokens
     where appendPropertySel test selector = Property prop test : selector
+parseSelector (Delim ':':Delim ':':Ident p:ts) = parseSelector' (Psuedoelement p) ts
+parseSelector (Delim ':':Ident p:ts) = parseSelector' (Psuedoclass p []) ts
+parseSelector (Delim ':':Function fn:tokens) =
+        concatP appendPseudo scanBlock parseSelector tokens
+    where appendPseudo args selector = Psuedoclass fn args : selector
 parseSelector tokens = ([], tokens)
 
 parseCombinators' :: Selector -> Parser Selector
