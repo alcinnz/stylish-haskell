@@ -1,5 +1,5 @@
 module Data.CSS.Style(
-        QueryableStyleSheet(..), QueryableStyleSheet'(..), queryableStyleSheet,
+        QueryableStyleSheet, QueryableStyleSheet'(..), queryableStyleSheet,
         queryRules,
         PropertyParser(..), cascade,
         TrivialPropertyParser(..),
@@ -14,9 +14,6 @@ import Data.CSS.Style.Common
 import qualified Data.CSS.Style.Cascade as Cascade
 import Data.CSS.Style.Cascade (PropertyParser(..), TrivialPropertyParser)
 
--- TODO do performance tests to decide beside between strict/lazy,
---      or is another Map implementation better?
-import Data.HashMap.Strict
 import Data.CSS.Syntax.Tokens (Token)
 import Data.CSS.Syntax.StyleSheet (StyleSheet(..))
 
@@ -34,29 +31,32 @@ queryableStyleSheet :: PropertyParser p => QueryableStyleSheet p
 queryableStyleSheet = QueryableStyleSheet' {store = new, parser = temp, priority = 0}
 
 instance (RuleStore s, PropertyParser p) => StyleSheet (QueryableStyleSheet' s p) where
-    addRule self@(QueryableStyleSheet' store _ priority) rule = self {
-            store = addStyleRule store priority $ styleRule' rule
+    addRule self@(QueryableStyleSheet' store' _ priority') rule = self {
+            store = addStyleRule store' priority' $ styleRule' rule
         }
 
-queryRules (QueryableStyleSheet' store _ _) el = lookupRules store el
+queryRules :: PropertyParser p => QueryableStyleSheet p -> Element -> [StyleRule']
+queryRules (QueryableStyleSheet' store' _ _) el = lookupRules store' el
 
 --------
 ---- Cascade
 --------
 
 cascade :: PropertyParser p => QueryableStyleSheet p -> Element -> [(Text, [Token])] -> p -> p
-cascade (QueryableStyleSheet' store _ _) = Cascade.cascade store
+cascade (QueryableStyleSheet' store' _ _) = Cascade.cascade store'
 
 --- Verify syntax during parsing, so invalid properties don't interfere with cascade.
 data PropertyExpander parser inner = PropertyExpander parser inner
 instance (PropertyParser parser, RuleStore inner) => RuleStore (PropertyExpander parser inner) where
     new = PropertyExpander temp new
-    addStyleRule (PropertyExpander parser inner) priority rule =
-        PropertyExpander parser $ addStyleRule inner priority $ expandRule parser rule
-    lookupRules (PropertyExpander _ inner) el = lookupRules inner el
+    addStyleRule (PropertyExpander parser' inner') priority' rule =
+        PropertyExpander parser' $ addStyleRule inner' priority' $ expandRule parser' rule
+    lookupRules (PropertyExpander _ inner') el = lookupRules inner' el
 
-expandRule parser rule = rule {inner = StyleRule selector $ expandProperties parser properties}
-    where (StyleRule selector properties) = inner rule
-expandProperties parser ((name, value):props) =
-        shorthand parser name value ++ expandProperties parser props
+expandRule :: PropertyParser t => t -> StyleRule' -> StyleRule'
+expandRule parser' rule = rule {inner = StyleRule sel $ expandProperties parser' props}
+    where (StyleRule sel props) = inner rule
+expandProperties :: PropertyParser t => t -> [(Text, [Token])] -> [(Text, [Token])]
+expandProperties parser' ((key, value):props) =
+        shorthand parser' key value ++ expandProperties parser' props
 expandProperties _ [] = []

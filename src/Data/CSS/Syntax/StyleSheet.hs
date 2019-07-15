@@ -22,6 +22,7 @@ class StyleSheet s where
     addAtRule :: s -> Text -> [Token] -> (s, [Token])
     addAtRule self _ tokens = (self, skipAtRule tokens)
 
+addRules :: StyleSheet ss => ss -> ([Selector], [(Text, [Token])]) -> ss
 addRules self (selector:selectors, properties) = addRules self' (selectors, properties)
     where self' = addRule self $ StyleRule selector properties
 addRules self ([], _) = self
@@ -38,6 +39,7 @@ instance StyleSheet TrivialStyleSheet where
 parse :: StyleSheet s => s -> Text -> s
 parse stylesheet source = parse' stylesheet $ tokenize source
 
+parse' :: StyleSheet t => t -> [Token] -> t
 -- Things to skip.
 parse' stylesheet (Whitespace:tokens) = parse' stylesheet tokens
 parse' stylesheet (CDO:tokens) = parse' stylesheet tokens
@@ -54,17 +56,19 @@ parse' stylesheet tokens = parse' (addRules stylesheet rule) tokens'
 --------
 ---- Property parsing
 --------
+parseProperties :: Parser [(Text, [Token])]
 parseProperties (LeftCurlyBracket:tokens) = parseProperties' tokens
 parseProperties (Whitespace:tokens) = parseProperties tokens
 -- This error recovery is a bit overly conservative, but it's simple.
 parseProperties (_:tokens) = ([], skipAtRule tokens)
 parseProperties [] = ([], [])
 
+parseProperties' :: Parser [(Text, [Token])]
 parseProperties' (Whitespace:tokens) = parseProperties' tokens
 parseProperties' (Ident name:tokens)
     | Colon:tokens' <- skipSpace tokens =
         concatP appendProp scanValue parseProperties' tokens'
-    where appendProp value tail = (name, value):tail
+    where appendProp value props = (name, value):props
 parseProperties' (RightCurlyBracket:tokens) = ([], tokens)
 parseProperties' [] = ([], [])
 parseProperties' tokens = parseProperties' (skipValue tokens)
@@ -87,6 +91,7 @@ skipAtRule (RightSquareBracket:tokens) = RightSquareBracket:tokens
 skipAtRule (_:tokens) = skipAtRule tokens
 skipAtRule [] = []
 
+scanValue :: Parser [Token]
 scanValue (Semicolon:tokens) = ([], tokens)
 scanValue (Whitespace:tokens) = scanValue tokens
 
@@ -101,4 +106,5 @@ scanValue (RightSquareBracket:tokens) = ([], RightSquareBracket:tokens)
 
 scanValue tokens = capture scanValue tokens
 
+skipValue :: [Token] -> [Token]
 skipValue tokens = snd $ scanValue tokens

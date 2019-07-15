@@ -6,20 +6,22 @@ import Data.CSS.Syntax.Selector
 import Data.CSS.Style.Common
 import Data.List
 
-computeSpecificity :: Selector -> (Int, Int, Int)
-computeSpecificity (Element selector) = computeSpecificity' selector
+type Vec = (Int, Int, Int)
+computeSpecificity :: Selector -> Vec
+computeSpecificity (Element sel) = computeSpecificity' sel
 computeSpecificity (Child upSel sel) = computeSpecificity upSel `add` computeSpecificity' sel
 computeSpecificity (Descendant upSel sel) = computeSpecificity upSel `add` computeSpecificity' sel
 computeSpecificity (Adjacent upSel sel) = computeSpecificity upSel `add` computeSpecificity' sel
 computeSpecificity (Sibling upSel sel) = computeSpecificity upSel `add` computeSpecificity' sel
 
+computeSpecificity' :: [SimpleSelector] -> Vec
 computeSpecificity' (Tag _:sel) = computeSpecificity' sel `add` (0, 0, 1)
 computeSpecificity' (Class _:sel) = computeSpecificity' sel `add` (0, 1, 0)
 computeSpecificity' (Property _ _:sel) = computeSpecificity' sel `add` (0, 1, 0)
 computeSpecificity' (Id _:sel) = computeSpecificity' sel `add` (1, 0, 0)
 computeSpecificity' [] = (0, 0, 0)
 
-add :: (Int, Int, Int) -> (Int, Int, Int) -> (Int, Int, Int)
+add :: Vec -> Vec -> Vec
 add (a, b, c) (x, y, z) = (a + x, b + y, c + z)
 
 ---

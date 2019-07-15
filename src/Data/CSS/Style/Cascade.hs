@@ -10,16 +10,13 @@ import Data.CSS.Syntax.Tokens
 import Data.HashMap.Strict
 import Data.Text (unpack)
 
-cascadeRules overrides rules = cascadeProperties overrides $ concat $ Prelude.map properties rules
-cascadeProperties overrides props = fromList (props ++ overrides)
-
 class PropertyParser a where
     temp :: a
     inherit :: a -> a
     inherit = id
 
     shorthand :: a -> Text -> [Token] -> [(Text, [Token])]
-    shorthand self name value | Just _ <- longhand self self name value = [(name, value)]
+    shorthand self key value | Just _ <- longhand self self key value = [(key, value)]
         | otherwise = []
     -- longhand parent self name value
     longhand :: a -> a -> Text -> [Token] -> Maybe a
@@ -30,11 +27,19 @@ instance PropertyParser TrivialPropertyParser where
     longhand _ (TrivialPropertyParser self) key value =
         Just $ TrivialPropertyParser $ insert (unpack key) value self
 
-cascade :: (PropertyParser p, RuleStore s) => s -> Element -> [(Text, [Token])] -> p -> p
-cascade self el overrides parent = dispatch parent (inherit parent) $
+type Props = [(Text, [Token])]
+
+cascade :: (PropertyParser p, RuleStore s) => s -> Element -> Props -> p -> p
+cascade self el overrides base = dispatch base (inherit base) $
     toList $ cascadeRules overrides $ lookupRules self el
 
-dispatch parent child ((name, value):props)
-    | Just child' <- longhand parent child name value = dispatch parent child' props
-    | otherwise = dispatch parent child props
+cascadeRules :: Props -> [StyleRule'] -> HashMap Text [Token]
+cascadeRules overrides rules = cascadeProperties overrides $ concat $ Prelude.map properties rules
+cascadeProperties :: Props -> Props -> HashMap Text [Token]
+cascadeProperties overrides props = fromList (props ++ overrides)
+
+dispatch :: PropertyParser p => p -> p -> Props -> p
+dispatch base child ((key, value):props)
+    | Just child' <- longhand base child key value = dispatch base child' props
+    | otherwise = dispatch base child props
 dispatch _ child [] = child

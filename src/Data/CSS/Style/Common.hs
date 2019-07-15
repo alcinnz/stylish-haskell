@@ -7,7 +7,7 @@ module Data.CSS.Style.Common(
 
 import Data.CSS.Syntax.StyleSheet
 import Data.CSS.Syntax.Selector
-
+import Data.CSS.Syntax.Tokens
 import Data.Text.Internal (Text(..))
 
 data Element = ElementNode {
@@ -29,6 +29,7 @@ data StyleRule' = StyleRule' {
     compiledSelector :: SelectorFunc,
     rank :: (Int, (Int, Int, Int), Int) -- This reads ugly, but oh well.
 }
+styleRule' :: StyleRule -> StyleRule'
 styleRule' rule = StyleRule' {
     inner = rule,
     compiledSelector = \_ -> True,
@@ -40,5 +41,7 @@ instance Eq StyleRule' where
 instance Show StyleRule' where show a = show $ inner a
 instance Ord StyleRule' where compare x y = rank x `compare` rank y
 
-selector rule | StyleRule selector _ <- inner rule = selector
-properties rule | StyleRule _ properties <- inner rule = properties
+selector :: StyleRule' -> Selector
+selector rule | StyleRule sel _ <- inner rule = sel
+properties :: StyleRule' -> [(Text, [Data.CSS.Syntax.Tokens.Token])]
+properties rule | StyleRule _ props <- inner rule = props

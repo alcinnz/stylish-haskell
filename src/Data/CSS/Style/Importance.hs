@@ -8,9 +8,9 @@ import Data.CSS.Style.Common
 
 type Property = (Text, [Token])
 splitProperties :: [Property] -> ([Property], [Property])
-splitProperties (prop@(name, value):rest)
+splitProperties (prop@(key, value):rest)
         | (Ident "important":Delim '!':value') <- reverse value =
-            (unimportant, (name, reverse value'):important)
+            (unimportant, (key, reverse value'):important)
         | otherwise = (prop:unimportant, important)
     where (unimportant, important) = splitProperties rest
 splitProperties [] = ([], [])
@@ -26,7 +26,7 @@ instance RuleStore inner => RuleStore (ImportanceSplitter inner) where
                 addStyleRule self (negate priority) $ buildRule unimportant
             ) priority $ buildRule important
         where
-            (unimportant, important) = splitProperties properties
-            (StyleRule selector properties) = inner rule
-            buildRule properties = rule {inner = StyleRule selector properties}
+            (unimportant, important) = splitProperties props
+            (StyleRule sel props) = inner rule
+            buildRule x = rule {inner = StyleRule sel x}
     lookupRules (ImportanceSplitter self) el = lookupRules self el
