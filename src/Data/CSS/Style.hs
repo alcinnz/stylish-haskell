@@ -53,6 +53,9 @@ cascadeProperties overrides props = fromList (props ++ overrides)
 
 class PropertyParser a where
     temp :: a
+    inherit :: a -> a
+    inherit = id
+
     shorthand :: a -> Text -> [Token] -> [(Text, [Token])]
     shorthand self name value | Just _ <- longhand self self name value = [(name, value)]
         | otherwise = []
@@ -60,7 +63,8 @@ class PropertyParser a where
     longhand :: a -> a -> Text -> [Token] -> Maybe a
 
 cascade :: PropertyParser p => QueryableStyleSheet p -> Element -> [(Text, [Token])] -> p -> p
-cascade self el overrides parent = dispatch parent parent $ toList $ cascadeRules overrides $ queryRules self el
+cascade self el overrides parent = dispatch parent (inherit parent) $
+    toList $ cascadeRules overrides $ queryRules self el
 
 dispatch parent child ((name, value):props)
     | Just child' <- longhand parent child name value = dispatch parent child' props
