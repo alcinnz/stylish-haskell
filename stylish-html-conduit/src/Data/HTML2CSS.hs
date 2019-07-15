@@ -64,9 +64,12 @@ strContent [] = ""
 traverseStyles :: PropertyParser s => (s -> [o] -> o) -> (s -> Txt.Text -> o) ->
         QueryableStyleSheet s -> XML.Element -> o
 traverseStyles = traverseStyles' Nothing temp Nothing
+traverseStyles' :: PropertyParser s => Maybe Element -> s -> Maybe Element ->
+        (s -> [o] -> o) -> (s -> Txt.Text -> o) ->
+        QueryableStyleSheet s -> XML.Element -> o
 traverseStyles' parent parentStyle previous builder textBuilder stylesheet el@(
         XML.Element _ attrs children
-    ) = builder style $ traverseChildren Nothing children
+    ) = builder style traverseChildren
     where
         stylishEl = elToStylish el parent previous
         maybeEl = Just stylishEl
@@ -75,13 +78,19 @@ traverseStyles' parent parentStyle previous builder textBuilder stylesheet el@(
                 fst $ parseProperties' $ tokenize styleAttr
             | otherwise = []
 
-        traverseChildren prev (XML.NodeContent txt:nodes) =
-            textBuilder style txt : traverseChildren prev nodes
-        traverseChildren prev (XML.NodeElement el:nodes) =
+        traverseChildren = traversePsuedo' "before :before" :
+                traverseChildren' Nothing children ++
+                [traversePsuedo' "after :after"]
+        traversePsuedo' psuedos = traversePsuedo stylishEl psuedos style builder stylesheet
+        traverseChildren' prev (XML.NodeContent txt:nodes) =
+            textBuilder style txt : traverseChildren' prev nodes
+        traverseChildren' prev (XML.NodeElement el:nodes) =
             traverseStyles' maybeEl style prev builder textBuilder stylesheet el :
-                traverseChildren (Just $ elToStylish el maybeEl prev) nodes
-        traverseChildren prev (_:nodes) = traverseChildren prev nodes
-        traverseChildren _ [] = []
+                traverseChildren' (Just $ elToStylish el maybeEl prev) nodes
+        traverseChildren' prev (_:nodes) = traverseChildren' prev nodes
+        traverseChildren' _ [] = []
+traversePsuedo el psuedos parentStyle builder stylesheet = builder style []
+    where style = cascade stylesheet (addPsuedoclasses el psuedos) [] parentStyle
 
 elToStylish (XML.Element (XML.Name name _ _) attrs _) parent previous =
     ElementNode {
@@ -93,3 +102,10 @@ elToStylish (XML.Element (XML.Name name _ _) attrs _) parent previous =
         parent = parent,
         previous = previous
     }
+addPsuedoclasses el psuedoclasses
+    | (Attribute "" value : attrs) <- attributes el = el {
+            attributes = Attribute "" (psuedoclasses ++ value) : attrs
+        }
+    | otherwise = el {
+            attributes = Attribute "" psuedoclasses : attributes el
+        }
