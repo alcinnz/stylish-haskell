@@ -2,7 +2,6 @@
 module Main where
 
 import Test.Hspec
-import Test.Hspec.QuickCheck
 import Data.HashMap.Strict
 
 import Data.CSS.Syntax.Tokens
@@ -17,6 +16,7 @@ import Data.CSS.Style
 main :: IO ()
 main = hspec spec
 
+spec :: Spec
 spec = do
     describe "Canary" $ do
         it "Test framework works" $ do
@@ -97,23 +97,23 @@ spec = do
             rulesForElement index element `shouldBe` [sampleRule]
             rulesForElement index element2 `shouldBe` []
 
-            let rule = StyleRule (Element [Class "external"]) [("color", [Ident "green"])]
-            let index = addStyleRule styleIndex 0 $ styleRule' rule
-            rulesForElement index element `shouldBe` [rule]
-            rulesForElement index element2 `shouldBe` []
+            let rule1 = StyleRule (Element [Class "external"]) [("color", [Ident "green"])]
+            let index1 = addStyleRule styleIndex 0 $ styleRule' rule1
+            rulesForElement index1 element `shouldBe` [rule1]
+            rulesForElement index1 element2 `shouldBe` []
 
-            let rule = StyleRule (Element [Id "mysite"]) [("color", [Ident "green"])]
-            let index = addStyleRule styleIndex 0 $ styleRule' rule
-            rulesForElement index element `shouldBe` [rule]
-            rulesForElement index element2 `shouldBe` []
+            let rule2 = StyleRule (Element [Id "mysite"]) [("color", [Ident "green"])]
+            let index2 = addStyleRule styleIndex 0 $ styleRule' rule2
+            rulesForElement index2 element `shouldBe` [rule2]
+            rulesForElement index2 element2 `shouldBe` []
 
-            let rule = StyleRule (Element [Property "href" $ Prefix "https://"]) [("color", [Ident "green"])]
-            let index = addStyleRule styleIndex 0 $ styleRule' rule
-            rulesForElement index element `shouldBe` [rule]
-            rulesForElement index element2 `shouldBe` []
+            let rule3 = StyleRule (Element [Property "href" $ Prefix "https://"]) [("color", [Ident "green"])]
+            let index3 = addStyleRule styleIndex 0 $ styleRule' rule3
+            rulesForElement index3 element `shouldBe` [rule3]
+            rulesForElement index3 element2 `shouldBe` []
     describe "Selector Compiler" $ do
         it "Correctly evaluates selectors" $ do
-            let parent = ElementNode {
+            let parentEl = ElementNode {
                 name = "a",
                 parent = Nothing,
                 previous = Nothing,
@@ -126,92 +126,92 @@ spec = do
             }
             let sibling = ElementNode {
                 name = "img",
-                parent = Just parent,
+                parent = Just parentEl,
                 previous = Nothing,
                 attributes = []
             }
             let child = ElementNode {
                 name = "b",
-                parent = Just parent,
+                parent = Just parentEl,
                 previous = Just sibling,
                 attributes = []
             }
 
-            let selector = compile (Element [Tag "a"])
-            selector parent `shouldBe` True
-            selector sibling `shouldBe` False
-            selector child `shouldBe` False
+            let selector1 = compile (Element [Tag "a"])
+            selector1 parentEl `shouldBe` True
+            selector1 sibling `shouldBe` False
+            selector1 child `shouldBe` False
 
-            let selector = compile (Element [Class "external"])
-            selector parent `shouldBe` True
-            selector sibling `shouldBe` False
-            selector child `shouldBe` False
+            let selector2 = compile (Element [Class "external"])
+            selector2 parentEl `shouldBe` True
+            selector2 sibling `shouldBe` False
+            selector2 child `shouldBe` False
 
-            let selector = compile (Element [Id "mysite"])
-            selector parent `shouldBe` True
-            selector sibling `shouldBe` False
-            selector child `shouldBe` False
+            let selector3 = compile (Element [Id "mysite"])
+            selector3 parentEl `shouldBe` True
+            selector3 sibling `shouldBe` False
+            selector3 child `shouldBe` False
 
-            let selector = compile (Element [Property "lang" Exists])
-            selector parent `shouldBe` True
-            selector sibling `shouldBe` False
-            selector child `shouldBe` False
+            let selector4 = compile (Element [Property "lang" Exists])
+            selector4 parentEl `shouldBe` True
+            selector4 sibling `shouldBe` False
+            selector4 child `shouldBe` False
 
-            let selector = compile (Element [Property "class" $ Include "secure"])
-            selector parent `shouldBe` True
-            selector sibling `shouldBe` False
-            selector child `shouldBe` False
+            let selector5 = compile (Element [Property "class" $ Include "secure"])
+            selector5 parentEl `shouldBe` True
+            selector5 sibling `shouldBe` False
+            selector5 child `shouldBe` False
 
-            let selector = compile (Element [Property "href" $ Prefix "https://"])
-            selector parent `shouldBe` True
-            selector sibling `shouldBe` False
-            selector child `shouldBe` False
+            let selector6 = compile (Element [Property "href" $ Prefix "https://"])
+            selector6 parentEl `shouldBe` True
+            selector6 sibling `shouldBe` False
+            selector6 child `shouldBe` False
 
-            let selector = compile (Element [Property "href" $ Suffix ".html"])
-            selector parent `shouldBe` True
-            selector sibling `shouldBe` False
-            selector child `shouldBe` False
+            let selector7 = compile (Element [Property "href" $ Suffix ".html"])
+            selector7 parentEl `shouldBe` True
+            selector7 sibling `shouldBe` False
+            selector7 child `shouldBe` False
 
-            let selector = compile (Element [Property "href" $ Substring ".geek.nz"])
-            selector parent `shouldBe` True
-            selector sibling `shouldBe` False
-            selector child `shouldBe` False
+            let selector8 = compile (Element [Property "href" $ Substring ".geek.nz"])
+            selector8 parentEl `shouldBe` True
+            selector8 sibling `shouldBe` False
+            selector8 child `shouldBe` False
 
-            let selector = compile (Element [Property "lang" $ Dash "en"])
-            selector parent `shouldBe` True
-            selector sibling `shouldBe` False
-            selector child `shouldBe` False
+            let selector9 = compile (Element [Property "lang" $ Dash "en"])
+            selector9 parentEl `shouldBe` True
+            selector9 sibling `shouldBe` False
+            selector9 child `shouldBe` False
 
-            let selector = compile (Element [Property "lang" $ Dash "en-US"])
-            selector parent `shouldBe` True
-            selector sibling `shouldBe` False
-            selector child `shouldBe` False
+            let selectorA = compile (Element [Property "lang" $ Dash "en-US"])
+            selectorA parentEl `shouldBe` True
+            selectorA sibling `shouldBe` False
+            selectorA child `shouldBe` False
 
-            let selector = compile (Element [Property "lang" $ Dash "en-UK"])
-            selector parent `shouldBe` False
-            selector sibling `shouldBe` False
-            selector child `shouldBe` False
+            let selectorB = compile (Element [Property "lang" $ Dash "en-UK"])
+            selectorB parentEl `shouldBe` False
+            selectorB sibling `shouldBe` False
+            selectorB child `shouldBe` False
 
             -- TODO These could be tested better.
-            let selector = compile $ Child (Element [Tag "a"]) [Tag "b"]
-            selector parent `shouldBe` False
-            selector sibling `shouldBe` False
-            selector child `shouldBe` True
+            let selectorC = compile $ Child (Element [Tag "a"]) [Tag "b"]
+            selectorC parentEl `shouldBe` False
+            selectorC sibling `shouldBe` False
+            selectorC child `shouldBe` True
 
-            let selector = compile $ Descendant (Element [Tag "a"]) [Tag "b"]
-            selector parent `shouldBe` False
-            selector sibling `shouldBe` False
-            selector child `shouldBe` True
+            let selectorD = compile $ Descendant (Element [Tag "a"]) [Tag "b"]
+            selectorD parentEl `shouldBe` False
+            selectorD sibling `shouldBe` False
+            selectorD child `shouldBe` True
 
-            let selector = compile $ Sibling (Element [Tag "img"]) [Tag "b"]
-            selector parent `shouldBe` False
-            selector sibling `shouldBe` False
-            selector child `shouldBe` True
+            let selectorE = compile $ Sibling (Element [Tag "img"]) [Tag "b"]
+            selectorE parentEl `shouldBe` False
+            selectorE sibling `shouldBe` False
+            selectorE child `shouldBe` True
 
-            let selector = compile $ Adjacent (Element [Tag "img"]) [Tag "b"]
-            selector parent `shouldBe` False
-            selector sibling `shouldBe` False
-            selector child `shouldBe` True
+            let selectorF = compile $ Adjacent (Element [Tag "img"]) [Tag "b"]
+            selectorF parentEl `shouldBe` False
+            selectorF sibling `shouldBe` False
+            selectorF child `shouldBe` True
 
     describe "Style resolution" $ do
         it "respects selector specificity" $ do
@@ -235,9 +235,9 @@ spec = do
             let TrivialPropertyParser style = cascade rules el [] temp::TrivialPropertyParser
             style ! "color" `shouldBe` [Ident "green"]
 
-            let rules = parse queryable "a {color: red} a {color: green}"
-            let TrivialPropertyParser style = cascade rules el [] temp::TrivialPropertyParser
-            style ! "color" `shouldBe` [Ident "green"]
+            let rules2 = parse queryable "a {color: red} a {color: green}"
+            let TrivialPropertyParser style2 = cascade rules2 el [] temp::TrivialPropertyParser
+            style2 ! "color" `shouldBe` [Ident "green"]
         it "respects stylesheet precedence" $ do
             let el = ElementNode {
                 name = "a",
@@ -250,16 +250,16 @@ spec = do
             let TrivialPropertyParser style = cascade rules2 el [] temp::TrivialPropertyParser
             style ! "color" `shouldBe` [Ident "green"]
 
-            let el = ElementNode {
+            let el' = ElementNode {
                 name = "a",
                 parent = Nothing,
                 previous = Nothing,
                 attributes = [Attribute "class" "link"]
             }
-            let rules = parse (queryable {priority = 1}) "a {color: red}"
-            let rules2 = parse (rules {priority = 2}) "a {color: green !important}" :: QueryableStyleSheet TrivialPropertyParser
-            let TrivialPropertyParser style = cascade rules2 el [] temp::TrivialPropertyParser
-            style ! "color" `shouldBe` [Ident "green"]
+            let rules' = parse (queryable {priority = 1}) "a {color: red}"
+            let rules2' = parse (rules' {priority = 2}) "a {color: green !important}" :: QueryableStyleSheet TrivialPropertyParser
+            let TrivialPropertyParser style' = cascade rules2' el' [] temp::TrivialPropertyParser
+            style' ! "color" `shouldBe` [Ident "green"]
         it "respects overrides" $ do
             let el = ElementNode {
                 name = "a",
@@ -297,6 +297,9 @@ styleIndex :: StyleIndex
 styleIndex = new
 queryable :: QueryableStyleSheet TrivialPropertyParser
 queryable = queryableStyleSheet
+emptyStyle :: TrivialStyleSheet
 emptyStyle = TrivialStyleSheet []
+linkStyle :: TrivialStyleSheet
 linkStyle = TrivialStyleSheet [sampleRule]
+sampleRule :: StyleRule
 sampleRule = StyleRule (Element [Tag "a"]) [("color", [Ident "green"])]
