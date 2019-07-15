@@ -35,18 +35,21 @@ rulesForElement self element = Prelude.map inner $ lookupRules self element
 
 ---
 
+simpleSelector :: Selector -> [SimpleSelector]
 simpleSelector (Element s) = s
 simpleSelector (Child _ s) = s
 simpleSelector (Descendant _ s) = s
 simpleSelector (Adjacent _ s) = s
 simpleSelector (Sibling _ s) = s
 
-addRuleForSelector self@(StyleIndex index _) rule selector
-  | Just key <- selectorKey selector = self {
+addRuleForSelector :: StyleIndex -> StyleRule' -> [SimpleSelector] -> StyleIndex
+addRuleForSelector self@(StyleIndex index _) rule sel
+  | Just key <- selectorKey sel = self {
         indexed = insert key (rule : lookup' key index) index
     }
   | otherwise = self {unindexed = rule : unindexed self}
 
+selectorKey :: [SimpleSelector] -> Maybe SimpleSelector
 selectorKey (tok@(Tag _) : _) = Just tok
 selectorKey (tok@(Id _) : _) = Just tok
 selectorKey (tok@(Class _) : _) = Just tok
@@ -56,6 +59,7 @@ selectorKey [] = Nothing
 
 ----
 
+testsForAttributes :: [Attribute] -> [SimpleSelector]
 testsForElement :: Element -> [SimpleSelector]
 testsForElement element =
     (Tag $ name element) : (testsForAttributes $ attributes element)
@@ -65,14 +69,14 @@ testsForAttributes (Attribute "class" value:attrs) =
 testsForAttributes (Attribute "id" value:attrs) =
     (Prelude.map (\s -> Id $ pack s) $ words value) ++
         (Property "id" Exists : testsForAttributes attrs)
-testsForAttributes (Attribute name _:attrs) =
-    Property name Exists : testsForAttributes attrs
+testsForAttributes (Attribute elName _:attrs) =
+    Property elName Exists : testsForAttributes attrs
 testsForAttributes [] = []
 
 -- Implement hashable for SimpleSelector here because it proved challenging to automatically derive it.
 instance Hashable SimpleSelector where
     hashWithSalt seed (Tag tag) = seed `hashWithSalt` (0::Int) `hashWithSalt` unpack tag
-    hashWithSalt seed (Id id) = seed `hashWithSalt` (1::Int) `hashWithSalt` unpack id
+    hashWithSalt seed (Id i) = seed `hashWithSalt` (1::Int) `hashWithSalt` unpack i
     hashWithSalt seed (Class class_) = seed `hashWithSalt` (2::Int) `hashWithSalt` unpack class_
     hashWithSalt seed (Property prop test) =
         seed `hashWithSalt` (3::Int) `hashWithSalt` unpack prop `hashWithSalt` test
