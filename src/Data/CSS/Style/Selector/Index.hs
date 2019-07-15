@@ -41,17 +41,18 @@ simpleSelector (Descendant _ s) = s
 simpleSelector (Adjacent _ s) = s
 simpleSelector (Sibling _ s) = s
 
-addRuleForSelector self rule [] = self {unindexed = rule : unindexed self}
-addRuleForSelector self rule selector = self {
+addRuleForSelector self@(StyleIndex index _) rule selector
+  | Just key <- selectorKey selector = self {
         indexed = insert key (rule : lookup' key index) index
-    } where
-        key = selectorKey selector
-        index = indexed self
+    }
+  | otherwise = self {unindexed = rule : unindexed self}
 
-selectorKey (tok@(Tag _) : _) = tok
-selectorKey (tok@(Id _) : _) = tok
-selectorKey (tok@(Class _) : _) = tok
-selectorKey (Property prop _ : _) = Property prop Exists
+selectorKey (tok@(Tag _) : _) = Just tok
+selectorKey (tok@(Id _) : _) = Just tok
+selectorKey (tok@(Class _) : _) = Just tok
+selectorKey (Property prop _ : _) = Just $ Property prop Exists
+--selectorKey (_ : tokens) = selectorKey tokens
+selectorKey [] = Nothing
 
 ----
 
