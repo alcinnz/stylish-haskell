@@ -75,6 +75,14 @@ spec = do
             parse emptyStyle "a + b {}" `shouldBe` TrivialStyleSheet [
                     StyleRule (Adjacent (Element [Tag "a"]) [Tag "b"]) []
                 ]
+            parse emptyStyle "a::before {}"
+                `shouldBe` TrivialStyleSheet [
+                    StyleRule (Element [Tag "a", Psuedoelement "before"]) []
+                ]
+            parse emptyStyle "a:before {}"
+                `shouldBe` TrivialStyleSheet [
+                    StyleRule (Element [Tag "a", Psuedoclass "before" []]) []
+                ]
     describe "Style Index" $ do
         it "Retrieves appropriate styles" $ do
             let index = addStyleRule styleIndex 0 $ styleRule' sampleRule
@@ -272,8 +280,7 @@ spec = do
             style ! "color" `shouldBe` [Ident "green"]
     describe "Parser freezes" $ do
         it "does not regress" $ do
-            -- TODO handle psuedoelements
-            parse emptyStyle "output::before {content: 'Output'; pitch: high}"
+            parse emptyStyle "output: {content: 'Output'; pitch: high}"
                 `shouldBe` TrivialStyleSheet [
                     StyleRule (Element [Tag "output"]) []
                 ] -- Turned out to just be incorrect parsing

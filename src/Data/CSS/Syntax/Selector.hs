@@ -41,9 +41,9 @@ parseSelector (Delim '.':Ident class_:tokens) = parseSelector' (Class class_) to
 parseSelector (LeftSquareBracket:Ident prop:tokens) =
         concatP appendPropertySel parsePropertySel parseSelector tokens
     where appendPropertySel test selector = Property prop test : selector
-parseSelector (Delim ':':Delim ':':Ident p:ts) = parseSelector' (Psuedoelement p) ts
-parseSelector (Delim ':':Ident p:ts) = parseSelector' (Psuedoclass p []) ts
-parseSelector (Delim ':':Function fn:tokens) =
+parseSelector (Colon:Colon:Ident p:ts) = parseSelector' (Psuedoelement p) ts
+parseSelector (Colon:Ident p:ts) = parseSelector' (Psuedoclass p []) ts
+parseSelector (Colon:Function fn:tokens) =
         concatP appendPseudo scanBlock parseSelector tokens
     where appendPseudo args selector = Psuedoclass fn args : selector
 parseSelector tokens = ([], tokens)
