@@ -7,6 +7,7 @@ module Data.HTML2CSS(
 
 import qualified Data.List as L
 import qualified Data.Map as M
+import qualified Data.HashMap.Strict as HM
 import qualified Data.Text as Txt
 
 import qualified Text.XML as XML
@@ -73,15 +74,16 @@ traverseStyles' parent parentStyle previous builder textBuilder stylesheet el@(
     where
         stylishEl = elToStylish el parent previous
         maybeEl = Just stylishEl
-        style = cascade stylesheet stylishEl overrides parentStyle
+        rules = queryRules stylesheet stylishEl
+        style = cascade' (HM.lookupDefault [] "" rules) overrides parentStyle
         overrides | Just styleAttr <- "style" `M.lookup` attrs =
                 fst $ parseProperties' $ tokenize styleAttr
             | otherwise = []
 
-        traverseChildren = traversePsuedo' "before :before" :
+        traverseChildren = traversePsuedo' "before" ++
                 traverseChildren' Nothing children ++
-                [traversePsuedo' "after :after"]
-        traversePsuedo' psuedos = traversePsuedo stylishEl psuedos style builder stylesheet
+                traversePsuedo' "after"
+        traversePsuedo' psuedo = traversePsuedo rules psuedo style builder
         traverseChildren' prev (XML.NodeContent txt:nodes) =
             textBuilder style txt : traverseChildren' prev nodes
         traverseChildren' prev (XML.NodeElement el:nodes) =
@@ -89,8 +91,9 @@ traverseStyles' parent parentStyle previous builder textBuilder stylesheet el@(
                 traverseChildren' (Just $ elToStylish el maybeEl prev) nodes
         traverseChildren' prev (_:nodes) = traverseChildren' prev nodes
         traverseChildren' _ [] = []
-traversePsuedo el psuedos parentStyle builder stylesheet = builder style []
-    where style = cascade stylesheet (addPsuedoclasses el psuedos) [] parentStyle
+traversePsuedo rules psuedo parentStyle builder
+    | Just rules' <- HM.lookup psuedo rules = [builder (cascade' rules' [] parentStyle) []]
+    | otherwise = []
 
 elToStylish (XML.Element (XML.Name name _ _) attrs _) parent previous =
     ElementNode {

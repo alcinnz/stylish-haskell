@@ -10,7 +10,7 @@ name:                stylish-html-conduit
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             0.1.0.2
+version:             0.1.0.3
 
 -- A short (one-line) description of the package.
 synopsis:            Bridge between html-conduit and stylish-haskell
@@ -61,7 +61,7 @@ library
   
   -- Other library packages from which modules are imported.
   build-depends:       base >=4.9 && <4.10,
-                       stylish-haskell >= 0.3.0, css-syntax,
+                       stylish-haskell >= 0.6.0, css-syntax, unordered-containers,
                        xml-conduit, text, containers,
                        network-uri
   
