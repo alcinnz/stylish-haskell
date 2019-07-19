@@ -40,48 +40,48 @@ spec = do
                 StyleRule (Element [Tag "bedroom"]) [
                     ("drapes", [Ident "blue"]),
                     ("carpet", [Ident "wool", Ident "shag"])
-                ]]
+                ] ""]
             parse emptyStyle "  bathroom{tile :1in white;drapes :pink}" `shouldBe` TrivialStyleSheet [
                 StyleRule (Element [Tag "bathroom"]) [
                     ("tile", [Dimension "1" (NVInteger 1) "in", Ident "white"]),
                     ("drapes", [Ident "pink"])
-                ]]
+                ] ""]
         it "Parses selectors" $ do
             parse emptyStyle ".class {}" `shouldBe` TrivialStyleSheet [
-                    StyleRule (Element [Class "class"]) []
+                    StyleRule (Element [Class "class"]) [] ""
                 ]
             parse emptyStyle "*.class {}" `shouldBe` TrivialStyleSheet [
-                    StyleRule (Element [Class "class"]) []
+                    StyleRule (Element [Class "class"]) [] ""
                 ]
             parse emptyStyle "#id {}" `shouldBe` TrivialStyleSheet [
-                    StyleRule (Element [Id "id"]) []
+                    StyleRule (Element [Id "id"]) [] ""
                 ]
             parse emptyStyle "[attr] {}" `shouldBe` TrivialStyleSheet [
-                    StyleRule (Element [Property "attr" Exists]) []
+                    StyleRule (Element [Property "attr" Exists]) [] ""
                 ]
             parse emptyStyle "a , b {}" `shouldBe` TrivialStyleSheet [
-                    StyleRule (Element [Tag "b"]) [],
-                    StyleRule (Element [Tag "a"]) []
+                    StyleRule (Element [Tag "b"]) [] "",
+                    StyleRule (Element [Tag "a"]) [] ""
                 ]
             parse emptyStyle "a b {}" `shouldBe` TrivialStyleSheet [
-                    StyleRule (Descendant (Element [Tag "a"]) [Tag "b"]) []
+                    StyleRule (Descendant (Element [Tag "a"]) [Tag "b"]) [] ""
                 ]
             parse emptyStyle "a > b {}" `shouldBe` TrivialStyleSheet [
-                    StyleRule (Child (Element [Tag "a"]) [Tag "b"]) []
+                    StyleRule (Child (Element [Tag "a"]) [Tag "b"]) [] ""
                 ]
             parse emptyStyle "a ~ b {}" `shouldBe` TrivialStyleSheet [
-                    StyleRule (Sibling (Element [Tag "a"]) [Tag "b"]) []
+                    StyleRule (Sibling (Element [Tag "a"]) [Tag "b"]) [] ""
                 ]
             parse emptyStyle "a + b {}" `shouldBe` TrivialStyleSheet [
-                    StyleRule (Adjacent (Element [Tag "a"]) [Tag "b"]) []
+                    StyleRule (Adjacent (Element [Tag "a"]) [Tag "b"]) [] ""
                 ]
             parse emptyStyle "a::before {}"
                 `shouldBe` TrivialStyleSheet [
-                    StyleRule (Element [Tag "a", Psuedoelement "before"]) []
+                    StyleRule (Element [Tag "a"]) [] "before"
                 ]
             parse emptyStyle "a:before {}"
                 `shouldBe` TrivialStyleSheet [
-                    StyleRule (Element [Tag "a", Psuedoclass "before" []]) []
+                    StyleRule (Element [Tag "a", Psuedoclass "before" []]) [] ""
                 ]
     describe "Style Index" $ do
         it "Retrieves appropriate styles" $ do
@@ -105,17 +105,17 @@ spec = do
             rulesForElement index element `shouldBe` [sampleRule]
             rulesForElement index element2 `shouldBe` []
 
-            let rule1 = StyleRule (Element [Class "external"]) [("color", [Ident "green"])]
+            let rule1 = StyleRule (Element [Class "external"]) [("color", [Ident "green"])] ""
             let index1 = addStyleRule styleIndex 0 $ styleRule' rule1
             rulesForElement index1 element `shouldBe` [rule1]
             rulesForElement index1 element2 `shouldBe` []
 
-            let rule2 = StyleRule (Element [Id "mysite"]) [("color", [Ident "green"])]
+            let rule2 = StyleRule (Element [Id "mysite"]) [("color", [Ident "green"])] ""
             let index2 = addStyleRule styleIndex 0 $ styleRule' rule2
             rulesForElement index2 element `shouldBe` [rule2]
             rulesForElement index2 element2 `shouldBe` []
 
-            let rule3 = StyleRule (Element [Property "href" $ Prefix "https://"]) [("color", [Ident "green"])]
+            let rule3 = StyleRule (Element [Property "href" $ Prefix "https://"]) [("color", [Ident "green"])] ""
             let index3 = addStyleRule styleIndex 0 $ styleRule' rule3
             rulesForElement index3 element `shouldBe` [rule3]
             rulesForElement index3 element2 `shouldBe` []
@@ -282,16 +282,16 @@ spec = do
         it "does not regress" $ do
             parse emptyStyle "output: {content: 'Output'; pitch: high}"
                 `shouldBe` TrivialStyleSheet [
-                    StyleRule (Element [Tag "output"]) []
+                    StyleRule (Element [Tag "output"]) [] ""
                 ] -- Turned out to just be incorrect parsing
             parse emptyStyle "input, output {content: attr(value)}"
                 `shouldBe` TrivialStyleSheet [
                     StyleRule (Element [Tag "output"]) [
                         ("content", [Function "attr", Ident "value", RightParen])
-                    ],
+                    ] "",
                     StyleRule (Element [Tag "input"]) [
                         ("content", [Function "attr", Ident "value", RightParen])
-                    ]
+                    ] ""
                 ]
         it "paren balancing" $ do
             scanValue [RightParen] `shouldBe` ([], [RightParen])
@@ -309,4 +309,4 @@ emptyStyle = TrivialStyleSheet []
 linkStyle :: TrivialStyleSheet
 linkStyle = TrivialStyleSheet [sampleRule]
 sampleRule :: StyleRule
-sampleRule = StyleRule (Element [Tag "a"]) [("color", [Ident "green"])]
+sampleRule = StyleRule (Element [Tag "a"]) [("color", [Ident "green"])] ""

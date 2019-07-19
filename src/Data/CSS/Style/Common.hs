@@ -1,5 +1,5 @@
 module Data.CSS.Style.Common(
-        RuleStore(..), StyleRule'(..), selector, properties, styleRule',
+        RuleStore(..), StyleRule'(..), selector, properties, psuedoElement, styleRule',
         Element(..), Attribute(..),
         -- Re-exports
         Text(..), StyleRule(..), Selector(..), SimpleSelector(..), PropertyTest(..)
@@ -42,6 +42,8 @@ instance Show StyleRule' where show a = show $ inner a
 instance Ord StyleRule' where compare x y = rank x `compare` rank y
 
 selector :: StyleRule' -> Selector
-selector rule | StyleRule sel _ <- inner rule = sel
+selector rule | StyleRule sel _ _ <- inner rule = sel
 properties :: StyleRule' -> [(Text, [Data.CSS.Syntax.Tokens.Token])]
-properties rule | StyleRule _ props <- inner rule = props
+properties rule | StyleRule _ props _ <- inner rule = props
+psuedoElement :: StyleRule' -> Text
+psuedoElement rule | StyleRule _ _ psuedo <- inner rule = psuedo

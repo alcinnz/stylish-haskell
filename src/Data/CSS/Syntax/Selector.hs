@@ -14,7 +14,7 @@ data Selector = Element [SimpleSelector] |
     Adjacent Selector [SimpleSelector] | Sibling Selector [SimpleSelector]
     deriving (Show, Eq)
 data SimpleSelector = Tag Text | Id Text | Class Text | Property Text PropertyTest |
-    Psuedoclass Text [Token] | Psuedoelement Text
+    Psuedoclass Text [Token]
     deriving (Show, Eq)
 data PropertyTest = Exists | Equals Text | Suffix Text | Prefix Text | Substring Text |
     Include Text | Dash Text
@@ -41,7 +41,6 @@ parseSelector (Delim '.':Ident class_:tokens) = parseSelector' (Class class_) to
 parseSelector (LeftSquareBracket:Ident prop:tokens) =
         concatP appendPropertySel parsePropertySel parseSelector tokens
     where appendPropertySel test selector = Property prop test : selector
-parseSelector (Colon:Colon:Ident p:ts) = parseSelector' (Psuedoelement p) ts
 parseSelector (Colon:Ident p:ts) = parseSelector' (Psuedoclass p []) ts
 parseSelector (Colon:Function fn:tokens) =
         concatP appendPseudo scanBlock parseSelector tokens

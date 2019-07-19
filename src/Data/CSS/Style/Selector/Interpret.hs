@@ -38,8 +38,6 @@ lowerInner (Property prop test:s) = (tag, (prop, compileAttrTest test):attrs)
 -- psuedos, TODO handle argumented psuedoclasses.
 lowerInner (Psuedoclass c _:s) =
         (tag, ("", hasWord $ unpack c):attrs) where (tag, attrs) = lowerInner s
-lowerInner (Psuedoelement t:s) =
-        (tag, ("", hasWord (':' : unpack t)):attrs) where (tag, attrs) = lowerInner s
 lowerInner [] = (Nothing, [])
 
 compileAttrTest :: PropertyTest -> String -> Bool

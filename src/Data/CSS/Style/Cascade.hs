@@ -1,5 +1,6 @@
 module Data.CSS.Style.Cascade(
-        cascade, TrivialPropertyParser(..), PropertyParser(..)
+        query, cascade,
+        TrivialPropertyParser(..), PropertyParser(..), Props
     ) where
 
 import Data.CSS.Style.Common
@@ -29,9 +30,15 @@ instance PropertyParser TrivialPropertyParser where
 
 type Props = [(Text, [Token])]
 
-cascade :: (PropertyParser p, RuleStore s) => s -> Element -> Props -> p -> p
-cascade self el overrides base = dispatch base (inherit base) $
-    toList $ cascadeRules overrides $ lookupRules self el
+--- The query step exposes the available psuedoelements to the caller.
+
+query :: RuleStore s => s -> Element -> HashMap Text [StyleRule']
+query self el = Prelude.foldr yield empty $ lookupRules self el
+    where yield rule store = insertWith (++) (psuedoElement rule) [rule] store
+
+cascade :: PropertyParser p => [StyleRule'] -> Props -> p -> p
+cascade styles overrides base =
+    dispatch base (inherit base) $ toList $ cascadeRules overrides styles
 
 cascadeRules :: Props -> [StyleRule'] -> HashMap Text [Token]
 cascadeRules overrides rules = cascadeProperties overrides $ concat $ Prelude.map properties rules

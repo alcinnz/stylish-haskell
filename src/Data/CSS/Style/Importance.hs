@@ -27,6 +27,6 @@ instance RuleStore inner => RuleStore (ImportanceSplitter inner) where
             ) priority $ buildRule important
         where
             (unimportant, important) = splitProperties props
-            (StyleRule sel props) = inner rule
-            buildRule x = rule {inner = StyleRule sel x}
+            (StyleRule sel props psuedo) = inner rule
+            buildRule x = rule {inner = StyleRule sel x psuedo}
     lookupRules (ImportanceSplitter self) el = lookupRules self el

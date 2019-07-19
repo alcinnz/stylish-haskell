@@ -83,7 +83,6 @@ instance Hashable SimpleSelector where
         seed `hashWithSalt` (3::Int) `hashWithSalt` unpack prop `hashWithSalt` test
     hashWithSalt seed (Psuedoclass p args) =
         seed `hashWithSalt` (4::Int) `hashWithSalt` p `hashWithSalt` serialize args
-    hashWithSalt seed (Psuedoelement p) = seed `hashWithSalt` (5::Int) `hashWithSalt` p
 
 instance Hashable PropertyTest where
     hashWithSalt seed Exists = seed `hashWithSalt` (0::Int)

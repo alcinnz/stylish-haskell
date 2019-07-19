@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Data.CSS.Syntax.StyleSheet (
         parse, parse', TrivialStyleSheet(..),
         StyleSheet(..), skipAtRule,
@@ -22,12 +23,12 @@ class StyleSheet s where
     addAtRule :: s -> Text -> [Token] -> (s, [Token])
     addAtRule self _ tokens = (self, skipAtRule tokens)
 
-addRules :: StyleSheet ss => ss -> ([Selector], [(Text, [Token])]) -> ss
-addRules self (selector:selectors, properties) = addRules self' (selectors, properties)
-    where self' = addRule self $ StyleRule selector properties
+addRules :: StyleSheet ss => ss -> ([Selector], ([(Text, [Token])], Text)) -> ss
+addRules self (selector:selectors, val@(props, psuedoel)) = addRules self' (selectors, val)
+    where self' = addRule self $ StyleRule selector props psuedoel
 addRules self ([], _) = self
 
-data StyleRule = StyleRule Selector [(Text, [Token])] deriving (Show, Eq)
+data StyleRule = StyleRule Selector [(Text, [Token])] Text deriving (Show, Eq)
 
 data TrivialStyleSheet = TrivialStyleSheet [StyleRule] deriving (Show, Eq)
 instance StyleSheet TrivialStyleSheet where
@@ -56,12 +57,17 @@ parse' stylesheet tokens = parse' (addRules stylesheet rule) tokens'
 --------
 ---- Property parsing
 --------
-parseProperties :: Parser [(Text, [Token])]
-parseProperties (LeftCurlyBracket:tokens) = parseProperties' tokens
+parseProperties :: Parser ([(Text, [Token])], Text)
+parseProperties (LeftCurlyBracket:tokens) = noPsuedoel $ parseProperties' tokens
 parseProperties (Whitespace:tokens) = parseProperties tokens
+parseProperties (Colon:Colon:Ident n:tokens) = ((val, n), tokens')
+    where ((val, _), tokens') = parseProperties tokens
 -- This error recovery is a bit overly conservative, but it's simple.
-parseProperties (_:tokens) = ([], skipAtRule tokens)
-parseProperties [] = ([], [])
+parseProperties (_:tokens) = noPsuedoel ([], skipAtRule tokens)
+parseProperties [] = noPsuedoel ([], [])
+
+noPsuedoel :: (x, y) -> ((x, Text), y)
+noPsuedoel (val, tokens) = ((val, ""), tokens)
 
 parseProperties' :: Parser [(Text, [Token])]
 parseProperties' (Whitespace:tokens) = parseProperties' tokens
