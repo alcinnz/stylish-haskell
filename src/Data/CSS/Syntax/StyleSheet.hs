@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Data.CSS.Syntax.StyleSheet (
-        parse, parse', TrivialStyleSheet(..),
+        parse, parse', parseForURL, TrivialStyleSheet(..),
         StyleSheet(..), skipAtRule,
         StyleRule(..),
         -- For parsing at-rules, HTML "style" attribute, etc.
@@ -14,11 +14,15 @@ import Data.CSS.Syntax.Selector
 import Data.CSS.Syntax.StylishUtil
 
 import Data.Text.Internal (Text(..))
+import Data.Text (pack, unpack)
+import Network.URI (parseRelativeReference, relativeTo, uriToString, URI(..))
 
 --------
 ---- Output type class
 --------
 class StyleSheet s where
+    setPriority :: Int -> s -> s
+    setPriority _ = id
     addRule :: s -> StyleRule -> s
     addAtRule :: s -> Text -> [Token] -> (s, [Token])
     addAtRule self _ tokens = (self, skipAtRule tokens)
@@ -39,6 +43,16 @@ instance StyleSheet TrivialStyleSheet where
 --------
 parse :: StyleSheet s => s -> Text -> s
 parse stylesheet source = parse' stylesheet $ tokenize source
+
+parseForURL :: StyleSheet s => s -> URI -> Text -> s
+parseForURL stylesheet base source = parse' stylesheet $ rewriteURLs $ tokenize source
+    where
+        rewriteURLs (Url text:toks)
+            | Just url <- parseRelativeReference $ unpack text =
+                Url (pack $ uriToString id (relativeTo url base) "") : rewriteURLs toks
+            | otherwise = Function "url" : RightParen : rewriteURLs toks
+        rewriteURLs (tok:toks) = tok : rewriteURLs toks
+        rewriteURLs [] = []
 
 parse' :: StyleSheet t => t -> [Token] -> t
 -- Things to skip.

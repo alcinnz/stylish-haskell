@@ -33,6 +33,7 @@ queryableStyleSheet :: PropertyParser p => QueryableStyleSheet p
 queryableStyleSheet = QueryableStyleSheet' {store = new, parser = temp, priority = 0}
 
 instance (RuleStore s, PropertyParser p) => StyleSheet (QueryableStyleSheet' s p) where
+    setPriority v self = self {priority = v}
     addRule self@(QueryableStyleSheet' store' _ priority') rule = self {
             store = addStyleRule store' priority' $ styleRule' rule
         }

@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Data.HTML2CSS(
-        externalStyles, internalStyles,
+        externalStyles, externalStylesForURL, internalStyles, internalStylesForURL,
         cssPriorityAgent, cssPriorityUser, cssPriorityAuthor,
         traverseStyles, traverseStyles', elToStylish
     ) where
@@ -9,6 +9,7 @@ import qualified Data.List as L
 import qualified Data.Map as M
 import qualified Data.HashMap.Strict as HM
 import qualified Data.Text as Txt
+import Data.Maybe (fromMaybe)
 
 import qualified Text.XML as XML
 import Data.CSS.Syntax.StyleSheet
@@ -18,22 +19,24 @@ import Data.CSS.Syntax.Tokens (tokenize)
 import Network.URI
 
 ---- Constants
-cssPriorityAgent styles = styles {priority = 1}
-cssPriorityUser styles = styles {priority = 2}
-cssPriorityAuthor styles = styles {priority = 3}
+cssPriorityAgent, cssPriorityUser, cssPriorityAuthor :: StyleSheet s => s -> s
+cssPriorityAgent = setPriority 1
+cssPriorityUser = setPriority 2
+cssPriorityAuthor = setPriority 3
 
 ---- Parsing
-externalStyles :: PropertyParser s => QueryableStyleSheet s -> (M.Map XML.Name Txt.Text -> Bool) ->
-        XML.Element -> (URI -> IO Txt.Text) -> IO (QueryableStyleSheet s)
-externalStyles stylesheet testMedia html loadURL = do
-    css <- externalStyles' testMedia html loadURL
-    return $ foldl parse (cssPriorityAuthor stylesheet) css
-externalStyles' testMedia html loadURL = go $ linkedStyles' testMedia html
+externalStyles :: StyleSheet s => s -> (M.Map XML.Name Txt.Text -> Bool) ->
+        XML.Element -> (URI -> IO Txt.Text) -> IO s
+externalStyles a b c d = externalStylesForURL a b c nullURI d
+externalStylesForURL stylesheet testMedia html base loadURL = do
+    css <- externalStyles' testMedia html base loadURL
+    return $ foldl (\a (b, c) -> parseForURL a b c) (cssPriorityAuthor stylesheet) css
+externalStyles' testMedia html base loadURL = go $ linkedStyles' testMedia html
     where -- TODO parallelise loads
         go (link:links) = do
             response <- loadURL $ link
             rest <- go links
-            return $ response : rest
+            return $ (relativeTo link base, response) : rest
         go [] = return []
 
 linkedStyles' testMedia (XML.Element (XML.Name "link" _ _) attrs _)
@@ -44,8 +47,10 @@ linkedStyles' testMedia (XML.Element (XML.Name "link" _ _) attrs _)
 linkedStyles' testMedia (XML.Element _ _ children) =
     concat [linkedStyles' testMedia el | XML.NodeElement el <- children]
 
-internalStyles testMedia stylesheet html =
-    foldl parse (cssPriorityAuthor stylesheet) $ internalStyles' testMedia html
+internalStyles a b c = internalStylesForURL a b nullURI c
+internalStylesForURL testMedia stylesheet base html =
+    foldl (\s -> parseForURL s base) (cssPriorityAuthor stylesheet) $
+        internalStyles' testMedia html
 internalStyles' testMedia (XML.Element (XML.Name "style"_ _) attrs children)
     | testMedia attrs = [strContent children]
 internalStyles' testMedia (XML.Element _ _ children) =
@@ -64,11 +69,14 @@ strContent [] = ""
 ---- Styling
 traverseStyles :: PropertyParser s => (s -> [o] -> o) -> (s -> Txt.Text -> o) ->
         QueryableStyleSheet s -> XML.Element -> o
-traverseStyles = traverseStyles' Nothing temp Nothing
+traverseStyles = traverseStyles' Nothing temp Nothing (\x y -> Nothing)
+traversePrepopulatedStyles :: PropertyParser s => (s -> XML.Element -> Maybe [o]) ->
+        (s -> [o] -> o) -> (s -> Txt.Text -> o) -> QueryableStyleSheet s -> XML.Element -> o
+traversePrepopulatedStyles = traverseStyles' Nothing temp Nothing
 traverseStyles' :: PropertyParser s => Maybe Element -> s -> Maybe Element ->
-        (s -> [o] -> o) -> (s -> Txt.Text -> o) ->
+        (s -> XML.Element -> Maybe [o]) -> (s -> [o] -> o) -> (s -> Txt.Text -> o) ->
         QueryableStyleSheet s -> XML.Element -> o
-traverseStyles' parent parentStyle previous builder textBuilder stylesheet el@(
+traverseStyles' parent parentStyle previous prepopulate builder textBuilder stylesheet el@(
         XML.Element _ attrs children
     ) = builder style traverseChildren
     where
@@ -81,13 +89,13 @@ traverseStyles' parent parentStyle previous builder textBuilder stylesheet el@(
             | otherwise = []
 
         traverseChildren = traversePsuedo' "before" ++
-                traverseChildren' Nothing children ++
+                fromMaybe (traverseChildren' Nothing children) (prepopulate style el) ++
                 traversePsuedo' "after"
         traversePsuedo' psuedo = traversePsuedo rules psuedo style builder
         traverseChildren' prev (XML.NodeContent txt:nodes) =
             textBuilder style txt : traverseChildren' prev nodes
         traverseChildren' prev (XML.NodeElement el:nodes) =
-            traverseStyles' maybeEl style prev builder textBuilder stylesheet el :
+            traverseStyles' maybeEl style prev prepopulate builder textBuilder stylesheet el :
                 traverseChildren' (Just $ elToStylish el maybeEl prev) nodes
         traverseChildren' prev (_:nodes) = traverseChildren' prev nodes
         traverseChildren' _ [] = []

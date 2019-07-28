@@ -10,7 +10,7 @@ name:                stylish-haskell
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             0.6.0.0
+version:             0.7.0.0
 
 -- A short (one-line) description of the package.
 synopsis:            Apply CSS styles to a document tree.
@@ -59,7 +59,7 @@ library
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.9 && <4.10, css-syntax, text, unordered-containers, hashable
+  build-depends:       base >=4.9 && <4.10, css-syntax, text, unordered-containers, hashable, network-uri
   
   -- Directories containing source files.
   hs-source-dirs:      src
@@ -75,5 +75,5 @@ test-suite test-stylish
   type:     exitcode-stdio-1.0
   main-is:              Test.hs
   other-modules:        Data.CSS.Syntax.StyleSheet, Data.CSS.Syntax.Selector, Data.CSS.Style
-  build-depends:       base >=4.9 && <4.10, css-syntax, text, unordered-containers, hashable, hspec, QuickCheck
+  build-depends:       base >=4.9 && <4.10, css-syntax, text, unordered-containers, hashable, network-uri, hspec, QuickCheck
   ghc-options: -Wall
