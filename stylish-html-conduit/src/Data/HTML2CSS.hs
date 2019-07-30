@@ -34,7 +34,7 @@ externalStylesForURL stylesheet testMedia html base loadURL = do
 externalStyles' testMedia html base loadURL = go $ linkedStyles' testMedia html
     where -- TODO parallelise loads
         go (link:links) = do
-            response <- loadURL $ link
+            response <- loadURL $ relativeTo link base
             rest <- go links
             return $ (relativeTo link base, response) : rest
         go [] = return []
