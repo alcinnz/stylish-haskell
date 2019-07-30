@@ -2,7 +2,7 @@
 module Data.HTML2CSS(
         externalStyles, externalStylesForURL, internalStyles, internalStylesForURL,
         cssPriorityAgent, cssPriorityUser, cssPriorityAuthor,
-        traverseStyles, traverseStyles', elToStylish
+        traverseStyles, traversePrepopulatedStyles, traverseStyles', elToStylish
     ) where
 
 import qualified Data.List as L
