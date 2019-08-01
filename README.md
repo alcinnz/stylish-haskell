@@ -15,6 +15,6 @@ Though beyond that Haskell makes just as trivial to assemble functions as it doe
 ## API
 To parse a CSS stylesheet call `Data.CSS.Syntax.StyleSheet.parse` which returns a variant of the passed in `StyleSheet`. `StyleSheet` is a typeclass specifying methods for parsing at-rules (`parseAtRule`), storing parsed style rules (`addRule`), and optionally setting the stylesheet's priority (`setPriority`).
 
-If these ultimately call down into a `Data.CSS.Syntax.Style.QueryableStyleSheet` you can call `queryRules` to find all matching style rules organized by psuedoelement. Once you have these style rules (typically by specifying a psuedoelement) you can call `cascade'` to resolve them into any instance of `PropertyParser`.
+If these ultimately call down into a `Data.CSS.Syntax.Style.QueryableStyleSheet` you can call `queryRules` to find all matching style rules organized by psuedoelement. Once you have these style rules (typically by specifying a psuedoelement) you can call `cascade'` to resolve them into any instance of `PropertyParser`. To query rules not targetting a psuedoelement, you can either lookup the "" psuedoelement or use the `cascade` shorthand.
 
 `PropertyParser` allows to declaratively (via Haskell pattern matching) specify how to parse CSS properties, and how they're impacted by CSS inheritance. It has four methods: `longhand` and `shorthand` specify how to parse CSS properties, whilst `temp` and `inherit` specifies what the default values should be.
