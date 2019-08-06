@@ -23,6 +23,11 @@ class PropertyParser a where
     -- longhand parent self name value
     longhand :: a -> a -> Text -> [Token] -> Maybe a
 
+    getVars :: a -> Props
+    getVars _ = []
+    setVars :: Props -> a -> a
+    setVars _ = id
+
 data TrivialPropertyParser = TrivialPropertyParser (HashMap String [Token])
 instance PropertyParser TrivialPropertyParser where
     temp = TrivialPropertyParser empty
@@ -45,18 +50,19 @@ query self el = Prelude.foldr yield empty $ lookupRules self el
 
 cascade :: PropertyParser p => [StyleRule'] -> Props -> p -> p
 cascade styles overrides base =
-    dispatch base (inherit base) $ toList $ cascadeRules overrides styles
+    dispatch base (inherit base) $ toList $ cascadeRules (getVars base ++ overrides) styles
 
 cascadeRules :: Props -> [StyleRule'] -> HashMap Text [Token]
 cascadeRules overrides rules = cascadeProperties overrides $ concat $ Prelude.map properties rules
 cascadeProperties :: Props -> Props -> HashMap Text [Token]
 cascadeProperties overrides props = fromList (props ++ overrides)
 
-dispatch :: PropertyParser p => p -> p -> Props -> p
-dispatch base child ((key, value):props)
+dispatch, dispatch' :: PropertyParser p => p -> p -> Props -> p
+dispatch base child props = dispatch' base (setVars props child) props
+dispatch' base child ((key, value):props)
     | Just child' <- longhand base child key value = dispatch base child' props
     | otherwise = dispatch base child props
-dispatch _ child [] = child
+dispatch' _ child [] = child
 
 --------
 ---- attr()
