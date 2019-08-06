@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Data.CSS.Style.Cascade(
         query, cascade,
         TrivialPropertyParser(..), PropertyParser(..), Props
@@ -9,7 +10,7 @@ import Data.CSS.Syntax.Tokens
 -- TODO do performance tests to decide beside between strict/lazy,
 --      or is another Map implementation better?
 import Data.HashMap.Strict
-import Data.Text (unpack)
+import Data.Text (unpack, pack)
 
 class PropertyParser a where
     temp :: a
@@ -30,11 +31,17 @@ instance PropertyParser TrivialPropertyParser where
 
 type Props = [(Text, [Token])]
 
---- The query step exposes the available psuedoelements to the caller.
+--------
+---- Query/Psuedo-elements
+--------
 
 query :: RuleStore s => s -> Element -> HashMap Text [StyleRule']
 query self el = Prelude.foldr yield empty $ lookupRules self el
-    where yield rule store = insertWith (++) (psuedoElement rule) [rule] store
+    where yield rule store = insertWith (++) (psuedoElement rule) [resolveAttr rule el] store
+
+--------
+---- Cascade/Inheritance
+--------
 
 cascade :: PropertyParser p => [StyleRule'] -> Props -> p -> p
 cascade styles overrides base =
@@ -50,3 +57,20 @@ dispatch base child ((key, value):props)
     | Just child' <- longhand base child key value = dispatch base child' props
     | otherwise = dispatch base child props
 dispatch _ child [] = child
+
+--------
+---- attr()
+--------
+resolveAttr :: StyleRule' -> Element -> StyleRule'
+resolveAttr self el = self {
+        inner = StyleRule sel [(n, resolveAttr' v $ attrs2Dict el) | (n, v) <- attrs] psuedo
+    } where StyleRule sel attrs psuedo = inner self
+
+attrs2Dict :: Element -> HashMap Text String
+attrs2Dict el = fromList [(a, b) | Attribute a b <- attributes el]
+
+resolveAttr' :: [Token] -> HashMap Text String  -> [Token]
+resolveAttr' (Function "attr":Ident attr:LeftParen:toks) attrs =
+    String (pack $ lookupDefault "" attr attrs) : resolveAttr' toks attrs
+resolveAttr' (tok:toks) attrs = tok : resolveAttr' toks attrs
+resolveAttr' [] _ = []
