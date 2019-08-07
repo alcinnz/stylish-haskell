@@ -10,7 +10,7 @@ import Data.CSS.Syntax.Tokens
 -- TODO do performance tests to decide beside between strict/lazy,
 --      or is another Map implementation better?
 import Data.HashMap.Strict
-import Data.Text (unpack, pack)
+import Data.Text (unpack, pack, isPrefixOf)
 
 class PropertyParser a where
     temp :: a
@@ -58,7 +58,8 @@ cascadeProperties :: Props -> Props -> HashMap Text [Token]
 cascadeProperties overrides props = fromList (props ++ overrides)
 
 dispatch, dispatch' :: PropertyParser p => p -> p -> Props -> p
-dispatch base child props = dispatch' base (setVars props child) props
+dispatch base child props = dispatch' base (setVars vars child) props
+    where vars = Prelude.filter (\(n, _) -> isPrefixOf "--" n) props
 dispatch' base child ((key, value):props)
     | Just child' <- longhand base child key value = dispatch base child' props
     | otherwise = dispatch base child props
@@ -76,7 +77,7 @@ attrs2Dict :: Element -> HashMap Text String
 attrs2Dict el = fromList [(a, b) | Attribute a b <- attributes el]
 
 resolveAttr' :: [Token] -> HashMap Text String  -> [Token]
-resolveAttr' (Function "attr":Ident attr:LeftParen:toks) attrs =
+resolveAttr' (Function "attr":Ident attr:RightParen:toks) attrs =
     String (pack $ lookupDefault "" attr attrs) : resolveAttr' toks attrs
 resolveAttr' (tok:toks) attrs = tok : resolveAttr' toks attrs
 resolveAttr' [] _ = []
