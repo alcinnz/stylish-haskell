@@ -61,8 +61,8 @@ library
   
   -- Other library packages from which modules are imported.
   build-depends:       base >=4.9 && <4.10,
-                       stylist, css-syntax, unordered-containers,
-                       xml-conduit, text, containers,
+                       stylist >=1 && <2, css-syntax, unordered-containers,
+                       xml-conduit >=1.8 && < 1.9, text, containers,
                        network-uri
   
   -- Directories containing source files.

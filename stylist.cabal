@@ -61,7 +61,9 @@ library
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.9 && <4.10, css-syntax, text, unordered-containers, hashable, network-uri
+  build-depends:       base >=4.9 && <4.10, css-syntax >=0.1 && <0.2, text,
+                        unordered-containers >= 0.2 && <0.3, hashable,
+                        network-uri >= 2.6 && <2.7
   
   -- Directories containing source files.
   hs-source-dirs:      src
@@ -77,5 +79,7 @@ test-suite test-stylist
   type:     exitcode-stdio-1.0
   main-is:              Test.hs
   other-modules:        Data.CSS.Syntax.StyleSheet, Data.CSS.Syntax.Selector, Data.CSS.Style
-  build-depends:       base >=4.9 && <4.10, css-syntax, text, unordered-containers, hashable, network-uri, hspec, QuickCheck
+  build-depends:       base >=4.9 && <4.10, css-syntax >=0.1 && <0.2, text,
+                        unordered-containers >= 0.2 && <0.3, hashable,
+                        network-uri >= 2.6 && <2.7, hspec, QuickCheck
   ghc-options: -Wall
