@@ -1,4 +1,4 @@
-# Revision history for stylish-haskell
+# Revision history for stylist
 
 ## 0.0.1  -- YYYY-mm-dd
 

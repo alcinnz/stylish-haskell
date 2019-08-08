@@ -2,7 +2,7 @@
 --  documentation, see http://haskell.org/cabal/users-guide/
 
 -- The name of the package.
-name:                stylish-html-conduit
+name:                xml-conduit-stylist
 
 -- The package version.  See the Haskell package versioning policy (PVP) 
 -- for standards guiding when and how versions should be incremented.
@@ -10,13 +10,13 @@ name:                stylish-html-conduit
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             0.2.0.0
+version:             1.0.0.0
 
 -- A short (one-line) description of the package.
-synopsis:            Bridge between html-conduit and stylish-haskell
+synopsis:            Bridge between xml-conduit/html-conduit and stylist
 
 -- A longer description of the package.
--- description:         
+description:         Parses CSS from an HTML webpage and queries relevant properties for each element.
 
 -- URL for the project homepage or repository.
 homepage:            https://git.nzoss.org.nz/alcinnz/stylish-haskell
@@ -35,7 +35,7 @@ author:              Adrian Cochrane
 maintainer:          adrian@openwork.nz
 
 -- A copyright notice.
--- copyright:           
+-- copyright:           Adrian Cochrane copyright 2019
 
 category:            Web
 
@@ -61,7 +61,7 @@ library
   
   -- Other library packages from which modules are imported.
   build-depends:       base >=4.9 && <4.10,
-                       stylish-haskell >= 0.7.0, css-syntax, unordered-containers,
+                       stylist, css-syntax, unordered-containers,
                        xml-conduit, text, containers,
                        network-uri
   

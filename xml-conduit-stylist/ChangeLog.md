@@ -1,4 +1,4 @@
-# Revision history for stylish-html-conduit
+# Revision history for xml-conduit-stylist
 
 ## 0.1.0.0  -- YYYY-mm-dd
 
