@@ -5,12 +5,10 @@ Stylish Haskell implements CSS selection and cascade (but not inheritance) indep
 
 For more interesting projects see: https://github.io/alcinnz/browser-engine-ganarchy/
 
-## Why Haskell?
-No matter what you think about Haskell and other functional languages, there are great reasons to choose it for this project.
+## Versioning
+The second major number indicates that more of CSS has been implemented within the existing API. Until then the error recovery rules will ensure as yet invalid CSS won't have any effect.
 
-The primary reason is that the biggest challenge in implementing a CSS engine is in defining all the various CSS properties, and as such it needs to be trivial to define each individual property. Haskell's pattern matching syntax is perfect for this, and it's laziness is useful.
-
-Though beyond that Haskell makes just as trivial to assemble functions as it does datastructures, which comes in very handy for parsing and interpreting programming languages like CSS selectors.
+The first major number indicates any other change to the API, and might break your code.
 
 ## API
 So far I've only implemented a CSS parser via the function `Stylish.Parse.parse` which returns a variant of the passed in `StyleSheet`. `StyleSheet` is a typeclass implementing the logic for parsing CSS atrules and storing style rules.
