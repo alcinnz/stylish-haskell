@@ -22,7 +22,7 @@ description:         Parses CSS from an HTML webpage and queries relevant proper
 homepage:            https://git.nzoss.org.nz/alcinnz/stylish-haskell
 
 -- The license under which the package is released.
-license:             GPL-3
+license:             MIT
 
 -- The file containing the license text.
 license-file:        LICENSE
@@ -35,7 +35,7 @@ author:              Adrian Cochrane
 maintainer:          adrian@openwork.nz
 
 -- A copyright notice.
--- copyright:           Adrian Cochrane copyright 2019
+copyright:           Adrian Cochrane copyright 2019
 
 category:            Web
 
