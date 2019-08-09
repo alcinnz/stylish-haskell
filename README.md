@@ -21,3 +21,8 @@ If these ultimately call down into a `Data.CSS.Syntax.Style.QueryableStyleSheet`
 You can contributed code or register "issues" to Haskell Stylist by contacting me (Adrian Cochrane) via [mastodon](https://floss.social/@alcinnz/) or [email](mailto:adrian@openwork.nz). Or you can sign up for an account on the NZ OSS GitLab.
 
 If you're contributing code you can link me to where you're hosting your git fork, or send [a patch file](https://git-send-email.io/). Or if you simply to ask for more features or fixes don't hesitate to contact me!
+
+### Building
+1. Install `ghc` and `cabal-install`. (Debian package names listed here)
+2. From within the git repository, run `cabal install`. This'll compile Stylist and all it's other dependencies.
+3. Run `cabal test` after every change you make.
