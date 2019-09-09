@@ -47,10 +47,13 @@ extra-source-files:  ChangeLog.md, README.md
 -- Constraint on the version of Cabal needed to build this package.
 cabal-version:       >=1.10
 
+source-repository head
+    type: git
+    location: https://git.nzoss.org.nz/alcinnz/stylish-haskell.git
 
 library
   -- Modules exported by the library.
-  exposed-modules:     Data.CSS.Syntax.StyleSheet, Data.CSS.Syntax.Selector, Data.CSS.Style
+  exposed-modules:     Data.CSS.Syntax.StyleSheet, Data.CSS.Syntax.Selector, Data.CSS.Style, Data.CSS.Preprocessor.Conditions
   
   -- Modules included in this library but not exported.
   other-modules:       Data.CSS.Syntax.StylishUtil,

@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Data.CSS.Syntax.StyleSheet (
         parse, parse', parseForURL, TrivialStyleSheet(..),
-        StyleSheet(..), skipAtRule,
+        StyleSheet(..), skipAtRule, scanBlock,
         StyleRule(..),
         -- For parsing at-rules, HTML "style" attribute, etc.
         parseProperties, parseProperties',
