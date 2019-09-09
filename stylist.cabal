@@ -58,7 +58,8 @@ library
   -- Modules included in this library but not exported.
   other-modules:       Data.CSS.Syntax.StylishUtil,
                        Data.CSS.Style.Importance, Data.CSS.Style.Common, Data.CSS.Style.Cascade,
-                       Data.CSS.Style.Selector.Index, Data.CSS.Style.Selector.Interpret, Data.CSS.Style.Selector.Specificity
+                       Data.CSS.Style.Selector.Index, Data.CSS.Style.Selector.Interpret, Data.CSS.Style.Selector.Specificity,
+                       Data.CSS.Preprocessor.Conditions.Expr
   
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:    
