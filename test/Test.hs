@@ -13,6 +13,8 @@ import Data.CSS.Style.Selector.Index
 import Data.CSS.Style.Selector.Interpret
 import Data.CSS.Style
 
+import Data.CSS.Preprocessor.Conditions
+
 main :: IO ()
 main = hspec spec
 

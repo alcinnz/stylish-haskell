@@ -9,20 +9,24 @@ import Data.CSS.Syntax.Tokens(Token(..))
 import Data.Text (unpack)
 import Network.URI (URI(..), URIAuth(..))
 
+import Data.List
+
 data ConditionalStyles s = ConditionalStyles {
     hostURL :: URI,
     mediaDocument :: String,
     inner :: s
 }
 
+hostUrlS :: ConditionalStyles s -> String
 hostUrlS = show . hostURL
 
+parseAtBlock :: StyleSheet t => t -> [Token] -> (t, [Token])
 parseAtBlock self (LeftCurlyBracket:toks) =
     let (block, toks') = scanBlock toks in (parse' self block, toks')
 parseAtBlock self (_:toks) = parseAtBlock self toks
 parseAtBlock self [] = (self, [])
 
-instance StyleSheet ConditionalStyles where
+instance StyleSheet s => StyleSheet (ConditionalStyles s) where
     setPriority x self = self {inner = setPriority x $ inner self}
     addRule self rule = self {inner = addRule (inner self) rule}
 
@@ -40,7 +44,7 @@ instance StyleSheet ConditionalStyles where
         where
             domain | Just auth <- uriAuthority $ hostURL self = uriRegName auth
                 | otherwise = ""
-    addAtRule self "document" (Function "media-document":String match:RightParen:toks) =
+    addAtRule self "document" (Function "media-document":String match:RightParen:toks)
         | unpack match == mediaDocument self = parseAtBlock self toks
         | otherwise = addAtRule self "document" toks
     -- TODO Support regexp() conditions, requires new dependency
