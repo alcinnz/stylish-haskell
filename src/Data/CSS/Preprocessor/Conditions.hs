@@ -27,18 +27,22 @@ instance StyleSheet ConditionalStyles where
     addRule self rule = self {inner = addRule (inner self) rule}
 
     addAtRule self "document" (Comma:toks) = addAtRule self "document" toks
-    addAtRule self "document" (Url match:toks) | unpack match == hostUrlS self =
-        parseAtBlock self toks
-    addAtRule self "document" (Function "url-prefix":String match:RightParen:toks) =
+    addAtRule self "document" (Url match:toks)
+        | unpack match == hostUrlS self = parseAtBlock self toks
+        | otherwise = addAtRule self "document" toks
+    addAtRule self "document" (Function "url-prefix":String match:RightParen:toks)
         | unpack match `isPrefixOf` hostUrlS self = parseAtBlock self toks
+        | otherwise = addAtRule self "document" toks
     addAtRule self "document" (Function "domain":String match:RightParen:toks)
         | unpack match == domain || ('.':unpack match) `isSuffixOf` domain =
             parseAtBlock self toks
+        | otherwise = addAtRule self "document" toks
         where
             domain | Just auth <- uriAuthority $ hostURL self = uriRegName auth
                 | otherwise = ""
     addAtRule self "document" (Function "media-document":String match:RightParen:toks) =
         | unpack match == mediaDocument self = parseAtBlock self toks
+        | otherwise = addAtRule self "document" toks
     -- TODO Support regexp() conditions, requires new dependency
     addAtRule self "document" tokens = (self, skipAtRule tokens)
 
