@@ -64,19 +64,19 @@ eval :: (Text -> Datum) -> (Token -> Datum) -> Expr -> Bool
 eval = eval' []
 
 eval' :: [Datum] -> (Text -> Datum) -> (Token -> Datum) -> Expr -> Bool
-eval' (B x:B y:stack) v t (And:ops) = eval' (B (x && y):stack) v t ops
-eval' (B x:B y:stack) v t (Or:ops) = eval' (B (x || y):stack) v t ops
+eval' (B y:B x:stack) v t (And:ops) = eval' (B (x && y):stack) v t ops
+eval' (B y:B x:stack) v t (Or:ops) = eval' (B (x || y):stack) v t ops
 eval' (B x:stack) v t (Not:ops) = eval' (B (not x):stack) v t ops
 eval' stack v t (Var name:ops) = eval' (v name:stack) v t ops
 eval' stack v t (Tok tok:ops) = eval' (t tok:stack) v t ops
 -- TODO: How should I handle ratios?
-eval' (N x:N y:stack) v t (MkRatio:ops) = eval' (Ratio x y:stack) v t ops
+eval' (N y:N x:stack) v t (MkRatio:ops) = eval' (Ratio x y:stack) v t ops
 eval' _ _ _ (Func _ _:_) = False -- Unsupported here, parser used elsewhere
-eval' (N x:N y:stack) v t (Less:ops) = eval' (B (x < y):stack) v t ops
-eval' (N x:N y:stack) v t (LessEq:ops) = eval' (B (x <= y):stack) v t ops
-eval' (x:y:stack) v t (Equal:ops) = eval' (B (x == y):stack) v t ops
-eval' (N x:N y:stack) v t (Greater:ops) = eval' (B (x > y):stack) v t ops
-eval' (N x:N y:stack) v t (GreaterEq:ops) = eval' (B (x >= y):stack) v t ops
+eval' (N y:N x:stack) v t (Less:ops) = eval' (B (x < y):stack) v t ops
+eval' (N y:N x:stack) v t (LessEq:ops) = eval' (B (x <= y):stack) v t ops
+eval' (y:x:stack) v t (Equal:ops) = eval' (B (x == y):stack) v t ops
+eval' (N y:N x:stack) v t (Greater:ops) = eval' (B (x > y):stack) v t ops
+eval' (N y:N x:stack) v t (GreaterEq:ops) = eval' (B (x >= y):stack) v t ops
 eval' (B ret:_) _ _ [] = ret
 eval' [] _ _ [] = True -- Special case
 eval' _ _ _ _ = False -- Error handling fallback.
