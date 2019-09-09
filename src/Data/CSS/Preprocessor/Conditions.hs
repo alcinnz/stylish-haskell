@@ -17,7 +17,10 @@ data ConditionalStyles s = ConditionalStyles {
 
 hostUrlS = show . hostURL
 
-parseAtBlock self toks = let (block, toks') = scanBlock toks in (parse' self block, toks')
+parseAtBlock self (LeftCurlyBracket:toks) =
+    let (block, toks') = scanBlock toks in (parse' self block, toks')
+parseAtBlock self (_:toks) = parseAtBlock self toks
+parseAtBlock self [] = (self, [])
 
 instance StyleSheet ConditionalStyles where
     setPriority x self = self {inner = setPriority x $ inner self}
@@ -25,19 +28,18 @@ instance StyleSheet ConditionalStyles where
 
     addAtRule self "document" (Comma:toks) = addAtRule self "document" toks
     addAtRule self "document" (Url match:toks) | unpack match == hostUrlS self =
-        addAtRule self "document" toks
+        parseAtBlock self toks
     addAtRule self "document" (Function "url-prefix":String match:RightParen:toks) =
-        | unpack match `isPrefixOf` hostUrlS self = addAtRule self "document" toks
+        | unpack match `isPrefixOf` hostUrlS self = parseAtBlock self toks
     addAtRule self "document" (Function "domain":String match:RightParen:toks)
         | unpack match == domain || ('.':unpack match) `isSuffixOf` domain =
-            addAtRule self "document" toks
+            parseAtBlock self toks
         where
             domain | Just auth <- uriAuthority $ hostURL self = uriRegName auth
                 | otherwise = ""
     addAtRule self "document" (Function "media-document":String match:RightParen:toks) =
-        | unpack match == mediaDocument self = addAtRule self "document" toks
+        | unpack match == mediaDocument self = parseAtBlock self toks
     -- TODO Support regexp() conditions, requires new dependency
-    addAtRule self "document" (LeftCurlyBracket:toks) = parseAtBlock self toks
     addAtRule self "document" tokens = (self, skipAtRule tokens)
 
     addAtRule self rule tokens =
