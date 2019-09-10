@@ -38,9 +38,6 @@ parse' (RightParen:toks) ((Var ")", 0):ops) = parse' toks ops
 parse' (RightParen:toks) ((Not, 0):ops) = Not : parse' toks ops -- Functional not syntax
 parse' toks@(RightParen:_) ((op, _):ops) = op : parse' toks ops
 parse' (RightParen:_) [] = [] -- Invalid!
-parse' (Function name:toks) ops
-    | (args, RightParen:toks') <- break (== RightParen) toks = Func name args : parse' toks' ops
-    | otherwise = [op | (op, _) <- ops] -- Invalid!
 parse' (Ident var:toks) ops@((peek, _):ops')
     -- First, fix up various range syntaxes.
     | peek `elem` [Less, LessEq, Greater, GreaterEq] = -- Chained conditions
@@ -71,7 +68,6 @@ eval' stack v t (Var name:ops) = eval' (v name:stack) v t ops
 eval' stack v t (Tok tok:ops) = eval' (t tok:stack) v t ops
 -- TODO: How should I handle ratios?
 eval' (N y:N x:stack) v t (MkRatio:ops) = eval' (Ratio x y:stack) v t ops
-eval' _ _ _ (Func _ _:_) = False -- Unsupported here, parser used elsewhere
 eval' (N y:N x:stack) v t (Less:ops) = eval' (B (x < y):stack) v t ops
 eval' (N y:N x:stack) v t (LessEq:ops) = eval' (B (x <= y):stack) v t ops
 eval' (y:x:stack) v t (Equal:ops) = eval' (B (x == y):stack) v t ops

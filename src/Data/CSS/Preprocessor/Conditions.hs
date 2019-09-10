@@ -4,9 +4,12 @@ module Data.CSS.Preprocessor.Conditions(
     ) where
 
 import qualified Data.CSS.Preprocessor.Conditions.Expr as Query
+import Data.CSS.Preprocessor.Conditions.Expr (Op(..))
 
 import Data.CSS.Syntax.StyleSheet
+import Data.CSS.Syntax.Selector
 import Data.CSS.Syntax.Tokens(Token(..))
+import Data.CSS.Style (PropertyParser(..))
 
 import Data.Text.Internal (Text(..))
 import Data.Text (unpack)
@@ -14,16 +17,17 @@ import Network.URI (URI(..), URIAuth(..), parseURI)
 
 import Data.List
 
-data ConditionalStyles s = ConditionalStyles {
+data ConditionalStyles s p = ConditionalStyles {
     hostURL :: URI,
     mediaDocument :: String,
     inner :: s,
-    conditions :: [(Query.Expr, StyleRef)]
+    conditions :: [(Query.Expr, StyleRef)],
+    propertyParser :: p
 }
 
 data StyleRef = External URI | Internal [Token] deriving Eq
 
-hostUrlS :: ConditionalStyles s -> String
+hostUrlS :: ConditionalStyles s p -> String
 hostUrlS = show . hostURL
 
 parseAtBlock :: StyleSheet t => t -> [Token] -> (t, [Token])
@@ -32,7 +36,7 @@ parseAtBlock self (LeftCurlyBracket:toks) =
 parseAtBlock self (_:toks) = parseAtBlock self toks
 parseAtBlock self [] = (self, [])
 
-instance StyleSheet s => StyleSheet (ConditionalStyles s) where
+instance (StyleSheet s, PropertyParser p) => StyleSheet (ConditionalStyles s p) where
     setPriority x self = self {inner = setPriority x $ inner self}
     addRule self rule = self {inner = addRule (inner self) rule}
 
@@ -75,19 +79,21 @@ instance StyleSheet s => StyleSheet (ConditionalStyles s) where
 --------
 ---- @import/@media
 --------
-parseAtImport :: StyleSheet s => ConditionalStyles s -> Text -> [Token] -> (ConditionalStyles s, [Token])
+parseAtImport :: (StyleSheet s, PropertyParser p) => ConditionalStyles s p ->
+        Text -> [Token] -> (ConditionalStyles s p, [Token])
 parseAtImport self src toks
     | (cond, Semicolon:toks') <- Query.parse Semicolon toks, Just uri <- parseURI $ unpack src =
         (self { conditions = (cond, External uri) : conditions self }, toks')
 parseAtImport self _ toks = (self, skipAtRule toks)
 
-loadImports :: StyleSheet s => (URI -> IO Text) ->
-        (Text -> Query.Datum) -> (Token -> Query.Datum) ->
-        ConditionalStyles s -> IO s
+loadImports :: (StyleSheet s, PropertyParser p) =>
+        (URI -> IO Text) -> (Text -> Query.Datum) -> (Token -> Query.Datum) ->
+        ConditionalStyles s p -> IO s
 loadImports = loadImports' [] []
-loadImports' :: StyleSheet s => [URI] -> [(Query.Expr, StyleRef)] -> (URI -> IO Text) ->
-        (Text -> Query.Datum) -> (Token -> Query.Datum) ->
-        ConditionalStyles s -> IO s
+loadImports' :: (StyleSheet s, PropertyParser p) =>
+        [URI] -> [(Query.Expr, StyleRef)] ->
+        (URI -> IO Text) -> (Text -> Query.Datum) -> (Token -> Query.Datum) ->
+        ConditionalStyles s p -> IO s
 loadImports' blocklist ((cond, src):conds) loader vars evalToken self
     | Query.eval vars evalToken cond, Internal tokens <- src =
         loadImports' blocklist conds loader vars evalToken (parse' self tokens)
@@ -100,11 +106,42 @@ loadImports' blocklist [] loader v t self
     | otherwise = loadImports' blocklist conds loader v t self {conditions = []}
     where conds = conditions self
 
-expandForMedia :: StyleSheet s => (Text -> Query.Datum) -> (Token -> Query.Datum) ->
-        ConditionalStyles s -> s
+expandForMedia :: (StyleSheet s, PropertyParser p) => (Text -> Query.Datum) ->
+        (Token -> Query.Datum) -> ConditionalStyles s p -> s
 expandForMedia vars evalToken self | conds == [] = inner self
     | otherwise = expandForMedia vars evalToken $
         foldl parse' self {conditions = []} [
             src | (cond, Internal src) <- conds, Query.eval vars evalToken cond
         ]
     where conds = conditions self
+
+--------
+---- @supports
+--------
+
+evalSupports :: PropertyParser p => p -> [Token] -> Bool
+evalSupports self (Ident "not":toks) = not $ evalSupports self toks
+evalSupports self (LeftParen:toks) = let (block, toks') = scanBlock toks in
+    evalSupportsOp toks' self $ supportsProperty block self
+evalSupports self (Function "selector":toks) = let (block, toks') = scanBlock toks in
+    evalSupportsOp toks' self $ supportsSelector block
+evalSupports _ _ = False
+
+evalSupportsOp :: PropertyParser p => [Token] -> p -> Bool -> Bool
+evalSupportsOp (Ident "and":toks) self right = right && evalSupports self toks
+evalSupportsOp (Ident "or":toks) self right = right || evalSupports self toks
+evalSupportsOp [RightParen] _ ret = ret -- scanBlock captures closing paren
+evalSupportsOp [] _ ret = ret
+evalSupportsOp _ _ _ = False
+
+supportsProperty :: PropertyParser p => [Token] -> p -> Bool
+supportsProperty toks@(Ident "not":_) self = evalSupports self toks -- Special case fallback
+supportsProperty (Ident key:toks) self
+    | (Colon:value) <- skipSpace toks = shorthand self key (init value) /= []
+    | skipSpace toks `elem` [[RightParen], []] = shorthand self key [Ident "initial"] /= []
+    | otherwise = False
+supportsProperty toks self = evalSupports self toks -- Fallback to parenthesized expression.
+
+supportsSelector :: [Token] -> Bool
+supportsSelector toks = let (sels, toks') = parseSelectors toks in
+    sels /= [] && (toks' == [] || toks' == [RightParen])
