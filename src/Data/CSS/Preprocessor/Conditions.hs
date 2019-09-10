@@ -4,7 +4,6 @@ module Data.CSS.Preprocessor.Conditions(
     ) where
 
 import qualified Data.CSS.Preprocessor.Conditions.Expr as Query
-import Data.CSS.Preprocessor.Conditions.Expr (Op(..))
 
 import Data.CSS.Syntax.StyleSheet
 import Data.CSS.Syntax.Selector
@@ -73,6 +72,11 @@ instance (StyleSheet s, PropertyParser p) => StyleSheet (ConditionalStyles s p) 
     addAtRule self "import" (String src:toks) = parseAtImport self src toks
     addAtRule self "import" tokens = (self, skipAtRule tokens)
 
+    addAtRule self "supports" toks =
+            let (cond, toks') = break (== LeftCurlyBracket) toks in
+            if evalSupports (propertyParser self) cond
+                then parseAtBlock self toks' else (self, skipAtRule toks')
+
     addAtRule self rule tokens =
         let (self', tokens') = addAtRule (inner self) rule tokens in (self {inner = self'}, tokens')
 
@@ -120,6 +124,7 @@ expandForMedia vars evalToken self | conds == [] = inner self
 --------
 
 evalSupports :: PropertyParser p => p -> [Token] -> Bool
+evalSupports self (Whitespace:toks) = evalSupports self toks
 evalSupports self (Ident "not":toks) = not $ evalSupports self toks
 evalSupports self (LeftParen:toks) = let (block, toks') = scanBlock toks in
     evalSupportsOp toks' self $ supportsProperty block self
@@ -128,6 +133,7 @@ evalSupports self (Function "selector":toks) = let (block, toks') = scanBlock to
 evalSupports _ _ = False
 
 evalSupportsOp :: PropertyParser p => [Token] -> p -> Bool -> Bool
+evalSupportsOp (Whitespace:toks) self right = evalSupportsOp toks self right
 evalSupportsOp (Ident "and":toks) self right = right && evalSupports self toks
 evalSupportsOp (Ident "or":toks) self right = right || evalSupports self toks
 evalSupportsOp [RightParen] _ ret = ret -- scanBlock captures closing paren
@@ -135,9 +141,11 @@ evalSupportsOp [] _ ret = ret
 evalSupportsOp _ _ _ = False
 
 supportsProperty :: PropertyParser p => [Token] -> p -> Bool
+supportsProperty (Whitespace:toks) self = supportsProperty toks self
 supportsProperty toks@(Ident "not":_) self = evalSupports self toks -- Special case fallback
 supportsProperty (Ident key:toks) self
-    | (Colon:value) <- skipSpace toks = shorthand self key (init value) /= []
+    | (Colon:value) <- skipSpace toks = -- "init"'s used to strip trailing RightParen
+        shorthand self key (filter (/= Whitespace) $ init value) /= []
     | skipSpace toks `elem` [[RightParen], []] = shorthand self key [Ident "initial"] /= []
     | otherwise = False
 supportsProperty toks self = evalSupports self toks -- Fallback to parenthesized expression.
