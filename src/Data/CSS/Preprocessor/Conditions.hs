@@ -104,7 +104,7 @@ resolveImports self responses = self {rules = map resolveImport $ rules self}
 
 resolve :: StyleSheet s => (Text -> Query.Datum) -> (Token -> Query.Datum) ->
         s -> ConditionalStyles p -> s
-resolve v t styles self = resolve' v t (rules self) styles
+resolve v t styles self = resolve' v t (reverse $ rules self) styles
 resolve' :: StyleSheet s => (Text -> Query.Datum) -> (Token -> Query.Datum) ->
         [ConditionalRule p] -> s -> s
 resolve' v t (Priority x:rules) styles = resolve' v t rules $ setPriority x styles
