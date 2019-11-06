@@ -96,20 +96,22 @@ parseProperties' tokens = parseProperties' (skipValue tokens)
 --------
 ---- Skipping/Scanning utilities
 --------
-skipAtRule :: [Token] -> [Token]
-skipAtRule (Semicolon:tokens) = tokens
-skipAtRule (LeftCurlyBracket:tokens) = skipBlock tokens
+scanAtRule :: Parser [Token]
+scanAtRule (Semicolon:tokens) = ([], tokens)
+scanAtRule (LeftCurlyBracket:tokens) = scanInner tokens $ \rest -> ([], rest)
 
-skipAtRule (LeftParen:tokens) = skipAtRule $ skipBlock tokens
-skipAtRule (Function _:tokens) = skipAtRule $ skipBlock tokens
-skipAtRule (LeftSquareBracket:tokens) = skipAtRule $ skipBlock tokens
+scanAtRule tokens@(LeftParen:_) = scanInner tokens scanValue
+scanAtRule tokens@(Function _:_) = scanInner tokens scanValue
+scanAtRule tokens@(LeftSquareBracket:_) = scanInner tokens scanValue
 -- To ensure parens are balanced, should already be handled.
-skipAtRule (RightCurlyBracket:tokens) = RightCurlyBracket:tokens
-skipAtRule (RightParen:tokens) = RightParen:tokens
-skipAtRule (RightSquareBracket:tokens) = RightSquareBracket:tokens
+scanAtRule (RightCurlyBracket:tokens) = ([], RightCurlyBracket:tokens)
+scanAtRule (RightParen:tokens) = ([], RightParen:tokens)
+scanAtRule (RightSquareBracket:tokens) = ([], RightSquareBracket:tokens)
 
-skipAtRule (_:tokens) = skipAtRule tokens
-skipAtRule [] = []
+scanAtRule tokens = capture scanAtRule tokens
+
+skipAtRule :: [Token] -> [Token]
+skipAtRule tokens = snd $ scanAtRule tokens
 
 scanValue :: Parser [Token]
 scanValue (Semicolon:tokens) = ([], tokens)

@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Data.CSS.Preprocessor.Conditions(
-        ConditionalStyles(..), loadImports, expandForMedia
+        ConditionalStyles(..), extractImports, resolveImports, resolve
     ) where
 
 import qualified Data.CSS.Preprocessor.Conditions.Expr as Query
@@ -16,17 +16,20 @@ import Network.URI (URI(..), URIAuth(..), parseURI)
 
 import Data.List
 
-data ConditionalStyles s p = ConditionalStyles {
+data ConditionalStyles p = ConditionalStyles {
     hostURL :: URI,
     mediaDocument :: String,
-    inner :: s,
-    conditions :: [(Query.Expr, StyleRef)],
+    rules :: [ConditionalRule p],
     propertyParser :: p
 }
 
-data StyleRef = External URI | Internal [Token] deriving Eq
+data ConditionalRule p = Priority Int | StyleRule' StyleRule | AtRule Text [Token] |
+    External Query.Expr URI | Internal Query.Expr (ConditionalStyles p)
 
-hostUrlS :: ConditionalStyles s p -> String
+addRule' :: ConditionalStyles p -> ConditionalRule p -> ConditionalStyles p
+addRule' self rule = self {rules = rule : rules self}
+
+hostUrlS :: ConditionalStyles p -> String
 hostUrlS = show . hostURL
 
 parseAtBlock :: StyleSheet t => t -> [Token] -> (t, [Token])
@@ -35,9 +38,9 @@ parseAtBlock self (LeftCurlyBracket:toks) =
 parseAtBlock self (_:toks) = parseAtBlock self toks
 parseAtBlock self [] = (self, [])
 
-instance (StyleSheet s, PropertyParser p) => StyleSheet (ConditionalStyles s p) where
-    setPriority x self = self {inner = setPriority x $ inner self}
-    addRule self rule = self {inner = addRule (inner self) rule}
+instance PropertyParser p => StyleSheet (ConditionalStyles p) where
+    setPriority x self = addRule' self $ Priority x
+    addRule self rule = addRule' self $ StyleRule' rule
 
     addAtRule self "document" (Whitespace:toks) = addAtRule self "document" toks
     addAtRule self "document" (Comma:toks) = addAtRule self "document" toks
@@ -62,9 +65,8 @@ instance (StyleSheet s, PropertyParser p) => StyleSheet (ConditionalStyles s p) 
 
     addAtRule self "media" toks
         | (cond, LeftCurlyBracket:block) <- Query.parse LeftCurlyBracket toks =
-            let (block', toks') = scanBlock block in (self {
-                conditions = (cond, Internal block') : conditions self
-            }, toks')
+            let (block', toks') = scanBlock block in
+                (addRule' self $ Internal cond $ parse' self {rules = []} block', toks')
     addAtRule self "media" tokens = (self, skipAtRule tokens)
 
     addAtRule self "import" (Whitespace:toks) = addAtRule self "import" toks
@@ -77,47 +79,41 @@ instance (StyleSheet s, PropertyParser p) => StyleSheet (ConditionalStyles s p) 
             if evalSupports (propertyParser self) cond
                 then parseAtBlock self toks' else (self, skipAtRule toks')
 
-    addAtRule self rule tokens =
-        let (self', tokens') = addAtRule (inner self) rule tokens in (self {inner = self'}, tokens')
-
+    addAtRule self rule tokens = let (block, rest) = scanBlock tokens in
+        (addRule' self $ AtRule rule block, rest)
 --------
 ---- @import/@media
 --------
-parseAtImport :: (StyleSheet s, PropertyParser p) => ConditionalStyles s p ->
-        Text -> [Token] -> (ConditionalStyles s p, [Token])
+parseAtImport :: PropertyParser p => ConditionalStyles p -> Text ->
+        [Token] -> (ConditionalStyles p, [Token])
 parseAtImport self src toks
     | (cond, Semicolon:toks') <- Query.parse Semicolon toks, Just uri <- parseURI $ unpack src =
-        (self { conditions = (cond, External uri) : conditions self }, toks')
+        (addRule' self $ External cond uri, toks')
 parseAtImport self _ toks = (self, skipAtRule toks)
 
-loadImports :: (StyleSheet s, PropertyParser p) =>
-        (URI -> IO Text) -> (Text -> Query.Datum) -> (Token -> Query.Datum) ->
-        ConditionalStyles s p -> IO s
-loadImports = loadImports' [] []
-loadImports' :: (StyleSheet s, PropertyParser p) =>
-        [URI] -> [(Query.Expr, StyleRef)] ->
-        (URI -> IO Text) -> (Text -> Query.Datum) -> (Token -> Query.Datum) ->
-        ConditionalStyles s p -> IO s
-loadImports' blocklist ((cond, src):conds) loader vars evalToken self
-    | Query.eval vars evalToken cond, Internal tokens <- src =
-        loadImports' blocklist conds loader vars evalToken (parse' self tokens)
-    | Query.eval vars evalToken cond, External uri <- src, uri `notElem` blocklist = do
-        response <- loader uri
-        loadImports' (uri:blocklist) conds loader vars evalToken (parse self response)
-    | otherwise = loadImports' blocklist conds loader vars evalToken self
-loadImports' blocklist [] loader v t self
-    | conds == [] = return $ inner self
-    | otherwise = loadImports' blocklist conds loader v t self {conditions = []}
-    where conds = conditions self
+extractImports :: (Text -> Query.Datum) -> (Token -> Query.Datum) -> ConditionalStyles p -> [URI]
+extractImports vars evalToken self =
+    [uri | External cond uri <- rules self, Query.eval vars evalToken cond]
 
-expandForMedia :: (StyleSheet s, PropertyParser p) => (Text -> Query.Datum) ->
-        (Token -> Query.Datum) -> ConditionalStyles s p -> s
-expandForMedia vars evalToken self | conds == [] = inner self
-    | otherwise = expandForMedia vars evalToken $
-        foldl parse' self {conditions = []} [
-            src | (cond, Internal src) <- conds, Query.eval vars evalToken cond
-        ]
-    where conds = conditions self
+resolveImports :: ConditionalStyles p -> [(URI, ConditionalStyles p)] -> ConditionalStyles p
+resolveImports self responses = self {rules = map resolveImport $ rules self}
+    where
+        resolveImport (External cond uri) | (body:_) <- [body | (uri', body) <- responses, uri' == uri] =
+            Internal cond body
+        resolveImport x = x
+
+resolve :: StyleSheet s => (Text -> Query.Datum) -> (Token -> Query.Datum) ->
+        s -> ConditionalStyles p -> s
+resolve v t styles self = resolve' v t (rules self) styles
+resolve' :: StyleSheet s => (Text -> Query.Datum) -> (Token -> Query.Datum) ->
+        [ConditionalRule p] -> s -> s
+resolve' v t (Priority x:rules) styles = resolve' v t rules $ setPriority x styles
+resolve' v t (StyleRule' rule:rules) styles = resolve' v t rules $ addRule styles rule
+resolve' v t (AtRule name block:rules) styles = resolve' v t rules $ fst $ addAtRule styles name block
+resolve' v t (Internal cond block:rules) styles | Query.eval v t cond =
+    resolve' v t rules $ resolve v t styles block
+resolve' v t (_:rules) styles = resolve' v t rules styles
+resolve' _ _ [] styles = styles
 
 --------
 ---- @supports
