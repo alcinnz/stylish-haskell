@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Data.CSS.Preprocessor.Conditions(
-        ConditionalStyles(..), extractImports, resolveImports, resolve
+        ConditionalStyles(..), conditionalStyles,
+        extractImports, resolveImports, resolve
     ) where
 
 import qualified Data.CSS.Preprocessor.Conditions.Expr as Query
@@ -22,6 +23,9 @@ data ConditionalStyles p = ConditionalStyles {
     rules :: [ConditionalRule p],
     propertyParser :: p
 }
+
+conditionalStyles :: PropertyParser p => URI -> String -> ConditionalStyles p
+conditionalStyles uri mediaDocument = ConditionalStyles uri mediaDocument [] temp
 
 data ConditionalRule p = Priority Int | StyleRule' StyleRule | AtRule Text [Token] |
     External Query.Expr URI | Internal Query.Expr (ConditionalStyles p)
@@ -79,7 +83,7 @@ instance PropertyParser p => StyleSheet (ConditionalStyles p) where
             if evalSupports (propertyParser self) cond
                 then parseAtBlock self toks' else (self, skipAtRule toks')
 
-    addAtRule self rule tokens = let (block, rest) = scanBlock tokens in
+    addAtRule self rule tokens = let (block, rest) = scanAtRule tokens in
         (addRule' self $ AtRule rule block, rest)
 --------
 ---- @import/@media

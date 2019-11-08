@@ -58,7 +58,7 @@ cascadeProperties :: Props -> Props -> HashMap Text [Token]
 cascadeProperties overrides props = fromList (props ++ overrides)
 
 construct :: PropertyParser p => p -> Props -> p
-construct base props = dispatch' base child props
+construct base props = dispatch base child props
     where child = setVars [item | item@(n, _) <- props, isPrefixOf "--" n] $ inherit base
 dispatch :: PropertyParser p => p -> p -> Props -> p
 dispatch base child ((key, value):props)

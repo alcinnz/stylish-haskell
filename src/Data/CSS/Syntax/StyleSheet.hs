@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Data.CSS.Syntax.StyleSheet (
         parse, parse', parseForURL, TrivialStyleSheet(..),
-        StyleSheet(..), skipAtRule, scanBlock, skipSpace,
+        StyleSheet(..), skipAtRule, scanAtRule, scanBlock, skipSpace,
         StyleRule(..),
         -- For parsing at-rules, HTML "style" attribute, etc.
         parseProperties, parseProperties',
@@ -97,8 +97,8 @@ parseProperties' tokens = parseProperties' (skipValue tokens)
 ---- Skipping/Scanning utilities
 --------
 scanAtRule :: Parser [Token]
-scanAtRule (Semicolon:tokens) = ([], tokens)
-scanAtRule (LeftCurlyBracket:tokens) = scanInner tokens $ \rest -> ([], rest)
+scanAtRule (Semicolon:tokens) = ([Semicolon], tokens)
+scanAtRule tokens@(LeftCurlyBracket:_) = scanInner tokens $ \rest -> ([], rest)
 
 scanAtRule tokens@(LeftParen:_) = scanInner tokens scanValue
 scanAtRule tokens@(Function _:_) = scanInner tokens scanValue

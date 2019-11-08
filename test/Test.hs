@@ -4,6 +4,7 @@ module Main where
 import Test.Hspec
 import Data.HashMap.Strict
 import Data.Maybe (fromJust)
+import Network.URI
 
 import Data.CSS.Syntax.Tokens
 import Data.CSS.Syntax.StyleSheet
@@ -15,6 +16,7 @@ import Data.CSS.Style.Selector.Interpret
 import Data.CSS.Style
 
 import Data.CSS.Preprocessor.Conditions
+import Data.CSS.Preprocessor.Conditions.Expr (Datum(..))
 
 main :: IO ()
 main = hspec spec
@@ -25,6 +27,11 @@ spec = do
         it "Test framework works" $ do
             True `shouldBe` True
     describe "Parsing" $ do
+        it "Can scan @rules" $ do
+            scanAtRule [Ident "utf-8", Semicolon, Ident "a"] `shouldBe` ([Ident "utf-8", Semicolon], [Ident "a"])
+            scanAtRule [Ident "before", LeftCurlyBracket, Ident "inside", RightCurlyBracket, Ident "after"] `shouldBe` (
+                [Ident "before", LeftCurlyBracket, Ident "inside", RightCurlyBracket],
+                [Ident "after"])
         it "Ignores @rules" $ do
             parse emptyStyle "@encoding 'utf-8';" `shouldBe` emptyStyle
             parse emptyStyle "  @encoding 'utf-8';" `shouldBe` emptyStyle
@@ -352,6 +359,22 @@ spec = do
             let VarParser vars (TrivialPropertyParser style) = cascade rules el [] $ cascade rules parent [] temp
             vars `shouldBe` [("--link", [Hash HId "f00"])]
             style ! "color" `shouldBe` [Hash HId "f00"]
+    describe "Conditional @rules" $ do
+        it "can handle normal rules" $ do
+            let TrivialStyleSheet styles = resolve' $ parse conditional "a {color: green}"
+            styles `shouldBe` [StyleRule (Element [Tag "a"]) [("color", [Ident "green"])] ""]
+
+            let TrivialStyleSheet styles = resolve' $ parse conditional "@rule; a {color: green}"
+            styles `shouldBe` [StyleRule (Element [Tag "a"]) [("color", [Ident "green"])] ""]
+
+            let TrivialStyleSheet styles = resolve' $ parse conditional "a {color: green} @rule;"
+            styles `shouldBe` [StyleRule (Element [Tag "a"]) [("color", [Ident "green"])] ""]
+
+            let TrivialStyleSheet styles = resolve' $ parse conditional "a {color: green} @font {}"
+            styles `shouldBe` [StyleRule (Element [Tag "a"]) [("color", [Ident "green"])] ""]
+
+            let TrivialStyleSheet styles = resolve' $ parse conditional "@font {} a {color: green}"
+            styles `shouldBe` [StyleRule (Element [Tag "a"]) [("color", [Ident "green"])] ""]
 
 styleIndex :: StyleIndex
 styleIndex = new
@@ -359,7 +382,10 @@ queryable :: QueryableStyleSheet (VarParser TrivialPropertyParser)
 queryable = queryableStyleSheet
 emptyStyle :: TrivialStyleSheet
 emptyStyle = TrivialStyleSheet []
+conditional :: ConditionalStyles TrivialPropertyParser
+conditional = conditionalStyles (fromJust $ parseURI "about:blank") "test"
 linkStyle :: TrivialStyleSheet
 linkStyle = TrivialStyleSheet [sampleRule]
 sampleRule :: StyleRule
 sampleRule = StyleRule (Element [Tag "a"]) [("color", [Ident "green"])] ""
+resolve' = resolve (\_ -> B False) (\_ -> B False) emptyStyle
