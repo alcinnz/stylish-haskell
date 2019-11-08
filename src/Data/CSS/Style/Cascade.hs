@@ -60,11 +60,11 @@ cascadeProperties overrides props = fromList (props ++ overrides)
 construct :: PropertyParser p => p -> Props -> p
 construct base props = dispatch' base child props
     where child = setVars [item | item@(n, _) <- props, isPrefixOf "--" n] $ inherit base
-dispatch' :: PropertyParser p => p -> p -> Props -> p
-dispatch' base child ((key, value):props)
-    | Just child' <- longhand base child key value = dispatch' base child' props
-    | otherwise = dispatch' base child props
-dispatch' _ child [] = child
+dispatch :: PropertyParser p => p -> p -> Props -> p
+dispatch base child ((key, value):props)
+    | Just child' <- longhand base child key value = dispatch base child' props
+    | otherwise = dispatch base child props
+dispatch _ child [] = child
 
 --------
 ---- attr()
