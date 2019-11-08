@@ -3,6 +3,7 @@ module Main where
 
 import Test.Hspec
 import Data.HashMap.Strict
+import Data.Maybe (fromJust)
 
 import Data.CSS.Syntax.Tokens
 import Data.CSS.Syntax.StyleSheet
@@ -232,7 +233,7 @@ spec = do
                 attributes = [Attribute "class" "link"]
             }
             let rules = parse queryable "a.link {color: green} a {color: red}"
-            let TrivialPropertyParser style = cascade rules el [] temp::TrivialPropertyParser
+            let VarParser _ (TrivialPropertyParser style) = cascade rules el [] temp::(VarParser TrivialPropertyParser)
             style ! "color" `shouldBe` [Ident "green"]
         it "respects syntax order" $ do
             let el = ElementNode {
@@ -242,11 +243,11 @@ spec = do
                 attributes = [Attribute "class" "link"]
             }
             let rules = parse queryable "a {color: red; color: green}"
-            let TrivialPropertyParser style = cascade rules el [] temp::TrivialPropertyParser
+            let VarParser _ (TrivialPropertyParser style) = cascade rules el [] temp::(VarParser TrivialPropertyParser)
             style ! "color" `shouldBe` [Ident "green"]
 
             let rules2 = parse queryable "a {color: red} a {color: green}"
-            let TrivialPropertyParser style2 = cascade rules2 el [] temp::TrivialPropertyParser
+            let VarParser _ (TrivialPropertyParser style2) = cascade rules2 el [] temp::(VarParser TrivialPropertyParser)
             style2 ! "color" `shouldBe` [Ident "green"]
         it "respects stylesheet precedence" $ do
             let el = ElementNode {
@@ -256,8 +257,8 @@ spec = do
                 attributes = [Attribute "class" "link"]
             }
             let rules = parse (queryable {priority = 1}) "a {color: green}"
-            let rules2 = parse (rules {priority = 2}) "a {color: red}" :: QueryableStyleSheet TrivialPropertyParser
-            let TrivialPropertyParser style = cascade rules2 el [] temp::TrivialPropertyParser
+            let rules2 = parse (rules {priority = 2}) "a {color: red}" :: QueryableStyleSheet (VarParser TrivialPropertyParser)
+            let VarParser _ (TrivialPropertyParser style) = cascade rules2 el [] temp::(VarParser TrivialPropertyParser)
             style ! "color" `shouldBe` [Ident "green"]
 
             let el' = ElementNode {
@@ -267,8 +268,8 @@ spec = do
                 attributes = [Attribute "class" "link"]
             }
             let rules' = parse (queryable {priority = 1}) "a {color: red}"
-            let rules2' = parse (rules' {priority = 2}) "a {color: green !important}" :: QueryableStyleSheet TrivialPropertyParser
-            let TrivialPropertyParser style' = cascade rules2' el' [] temp::TrivialPropertyParser
+            let rules2' = parse (rules' {priority = 2}) "a {color: green !important}" :: QueryableStyleSheet (VarParser TrivialPropertyParser)
+            let VarParser _ (TrivialPropertyParser style') = cascade rules2' el' [] temp::(VarParser TrivialPropertyParser)
             style' ! "color" `shouldBe` [Ident "green"]
         it "respects overrides" $ do
             let el = ElementNode {
@@ -278,7 +279,7 @@ spec = do
                 attributes = [Attribute "class" "link"]
             }
             let rules = parse queryable "a {color: red;}"
-            let TrivialPropertyParser style = cascade rules el [("color", [Ident "green"])] temp::TrivialPropertyParser
+            let VarParser _ (TrivialPropertyParser style) = cascade rules el [("color", [Ident "green"])] temp::(VarParser TrivialPropertyParser)
             style ! "color" `shouldBe` [Ident "green"]
     describe "Parser freezes" $ do
         it "does not regress" $ do
@@ -302,9 +303,59 @@ spec = do
             scanValue [Function "fn", Ident "arg", LeftParen] `shouldBe`
                 ([Function "fn", Ident "arg", LeftParen], [])
 
+    describe "CSS Variables" $ do
+        it "are captured" $ do
+            let parser = temp :: VarParser TrivialPropertyParser
+            vars parser `shouldBe` []
+            let parser1 = setVars [("--var", [Ident "value"])] parser
+            vars parser1 `shouldBe` [("--var", [Ident "value"])]
+            let parser2 = fromJust $ longhand parser parser1 "property" [Function "var", Ident "--var", RightParen]
+            vars parser2 `shouldBe` [("--var", [Ident "value"])]
+            let VarParser _ (TrivialPropertyParser style) = parser2
+            style ! "property" `shouldBe` [Ident "value"]
+
+            let el = ElementNode {
+                name = "a",
+                parent = Nothing,
+                previous = Nothing,
+                attributes = []
+            }
+            let rules = parse queryable "a {--var: value}"
+            let VarParser v _ = cascade rules el [] temp
+            v `shouldBe` [("--var", [Ident "value"])]
+        it "applies within element" $ do
+            let el = ElementNode {
+                name = "a",
+                parent = Nothing,
+                previous = Nothing,
+                attributes = []
+            }
+            let rules = parse queryable "a {--link: #f00; color: var(--link)}"
+            let VarParser vars (TrivialPropertyParser style) = cascade rules el [] temp
+            style ! "color" `shouldBe` [Hash HId "f00"]
+            style ! "--link" `shouldBe` [Hash HId "f00"]
+            vars `shouldBe` [("--link", [Hash HId "f00"])]
+        it "inherits" $ do
+            let parent = ElementNode {
+                name = "a",
+                parent = Nothing,
+                previous = Nothing,
+                attributes = []
+            }
+            let el = ElementNode {
+                name = "b",
+                parent = Just parent,
+                previous = Nothing,
+                attributes = []
+            }
+            let rules = parse queryable "a {--link: #f00} b {color: var(--link)}"
+            let VarParser vars (TrivialPropertyParser style) = cascade rules el [] $ cascade rules parent [] temp
+            vars `shouldBe` [("--link", [Hash HId "f00"])]
+            style ! "color" `shouldBe` [Hash HId "f00"]
+
 styleIndex :: StyleIndex
 styleIndex = new
-queryable :: QueryableStyleSheet TrivialPropertyParser
+queryable :: QueryableStyleSheet (VarParser TrivialPropertyParser)
 queryable = queryableStyleSheet
 emptyStyle :: TrivialStyleSheet
 emptyStyle = TrivialStyleSheet []

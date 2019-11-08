@@ -50,19 +50,20 @@ query self el = Prelude.foldr yield empty $ lookupRules self el
 
 cascade :: PropertyParser p => [StyleRule'] -> Props -> p -> p
 cascade styles overrides base =
-    dispatch base (inherit base) $ toList $ cascadeRules (getVars base ++ overrides) styles
+    construct base $ toList $ cascadeRules (getVars base ++ overrides) styles
 
 cascadeRules :: Props -> [StyleRule'] -> HashMap Text [Token]
 cascadeRules overrides rules = cascadeProperties overrides $ concat $ Prelude.map properties rules
 cascadeProperties :: Props -> Props -> HashMap Text [Token]
 cascadeProperties overrides props = fromList (props ++ overrides)
 
-dispatch, dispatch' :: PropertyParser p => p -> p -> Props -> p
-dispatch base child props = dispatch' base (setVars vars child) props
-    where vars = Prelude.filter (\(n, _) -> isPrefixOf "--" n) props
+construct :: PropertyParser p => p -> Props -> p
+construct base props = dispatch' base child props
+    where child = setVars [item | item@(n, _) <- props, isPrefixOf "--" n] $ inherit base
+dispatch' :: PropertyParser p => p -> p -> Props -> p
 dispatch' base child ((key, value):props)
-    | Just child' <- longhand base child key value = dispatch base child' props
-    | otherwise = dispatch base child props
+    | Just child' <- longhand base child key value = dispatch' base child' props
+    | otherwise = dispatch' base child props
 dispatch' _ child [] = child
 
 --------
