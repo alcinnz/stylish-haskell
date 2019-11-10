@@ -1,10 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Data.CSS.Preprocessor.Conditions(
         ConditionalStyles(..), conditionalStyles,
-        extractImports, resolveImports, resolve
+        extractImports, resolveImports, loadImports, resolve,
+        Datum(..)
     ) where
 
 import qualified Data.CSS.Preprocessor.Conditions.Expr as Query
+import Data.CSS.Preprocessor.Conditions.Expr (Datum(..))
 
 import Data.CSS.Syntax.StyleSheet
 import Data.CSS.Syntax.Selector
@@ -25,7 +27,7 @@ data ConditionalStyles p = ConditionalStyles {
 }
 
 conditionalStyles :: PropertyParser p => URI -> String -> ConditionalStyles p
-conditionalStyles uri mediaDocument = ConditionalStyles uri mediaDocument [] temp
+conditionalStyles uri mediaDocument' = ConditionalStyles uri mediaDocument' [] temp
 
 data ConditionalRule p = Priority Int | StyleRule' StyleRule | AtRule Text [Token] |
     External Query.Expr URI | Internal Query.Expr (ConditionalStyles p)
@@ -106,17 +108,33 @@ resolveImports self responses = self {rules = map resolveImport $ rules self}
             Internal cond body
         resolveImport x = x
 
+loadImports :: PropertyParser p => (URI -> IO Text) -> (Text -> Query.Datum) -> (Token -> Query.Datum) ->
+        ConditionalStyles p -> [URI] -> IO (ConditionalStyles p)
+loadImports loader vars evalToken self blocklist = do
+        let imports = extractImports vars evalToken self
+        imported <- loadAll [url | url <- imports, url `notElem` blocklist] Nothing
+        return $ resolveImports self imported
+    where
+        loadAll urls Nothing = loadAll urls $ Just urls
+        loadAll (url:urls) (Just blocklist') = do
+            source <- loader url
+            let parsed = parse self {rules = []} source
+            styles <- loadImports loader vars evalToken parsed (blocklist ++ blocklist')
+            rest <- loadAll urls $ Just blocklist'
+            return ((url, styles):rest)
+        loadAll [] _ = return []
+
 resolve :: StyleSheet s => (Text -> Query.Datum) -> (Token -> Query.Datum) ->
         s -> ConditionalStyles p -> s
 resolve v t styles self = resolve' v t (reverse $ rules self) styles
 resolve' :: StyleSheet s => (Text -> Query.Datum) -> (Token -> Query.Datum) ->
         [ConditionalRule p] -> s -> s
-resolve' v t (Priority x:rules) styles = resolve' v t rules $ setPriority x styles
-resolve' v t (StyleRule' rule:rules) styles = resolve' v t rules $ addRule styles rule
-resolve' v t (AtRule name block:rules) styles = resolve' v t rules $ fst $ addAtRule styles name block
-resolve' v t (Internal cond block:rules) styles | Query.eval v t cond =
-    resolve' v t rules $ resolve v t styles block
-resolve' v t (_:rules) styles = resolve' v t rules styles
+resolve' v t (Priority x:rules') styles = resolve' v t rules' $ setPriority x styles
+resolve' v t (StyleRule' rule:rules') styles = resolve' v t rules' $ addRule styles rule
+resolve' v t (AtRule name block:rules') styles = resolve' v t rules' $ fst $ addAtRule styles name block
+resolve' v t (Internal cond block:rules') styles | Query.eval v t cond =
+    resolve' v t rules' $ resolve v t styles block
+resolve' v t (_:rules') styles = resolve' v t rules' styles
 resolve' _ _ [] styles = styles
 
 --------

@@ -5,9 +5,10 @@ import Test.Hspec
 import Data.HashMap.Strict
 import Data.Maybe (fromJust)
 import Network.URI
+import Data.Scientific (toRealFloat)
 
 import Data.CSS.Syntax.Tokens
-import Data.CSS.Syntax.StyleSheet
+import Data.CSS.Syntax.StyleSheet (parse, StyleSheet(..), TrivialStyleSheet(..), scanAtRule, scanValue)
 import Data.CSS.Syntax.Selector
 
 import Data.CSS.Style.Common
@@ -16,7 +17,7 @@ import Data.CSS.Style.Selector.Interpret
 import Data.CSS.Style
 
 import Data.CSS.Preprocessor.Conditions
-import Data.CSS.Preprocessor.Conditions.Expr (Datum(..))
+import Data.CSS.Preprocessor.Conditions.Expr (Datum(..), Op(..), parse', eval)
 
 main :: IO ()
 main = hspec spec
@@ -360,7 +361,7 @@ spec = do
             vars `shouldBe` [("--link", [Hash HId "f00"])]
             style ! "color" `shouldBe` [Hash HId "f00"]
     describe "Conditional @rules" $ do
-        it "can handle normal rules" $ do
+        it "handles normal rules" $ do
             let TrivialStyleSheet styles = resolve' $ parse conditional "a {color: green}"
             styles `shouldBe` [StyleRule (Element [Tag "a"]) [("color", [Ident "green"])] ""]
 
@@ -375,6 +376,60 @@ spec = do
 
             let TrivialStyleSheet styles = resolve' $ parse conditional "@font {} a {color: green}"
             styles `shouldBe` [StyleRule (Element [Tag "a"]) [("color", [Ident "green"])] ""]
+        it "handles @document" $ do
+            let TrivialStyleSheet styles = resolve' $ parse conditional "@document url(about:blank) { a {color: green} }"
+            styles `shouldBe` [StyleRule (Element []) [] "", StyleRule (Element [Tag "a"]) [("color", [Ident "green"])] ""]
+            let TrivialStyleSheet styles = resolve' $ parse conditional "@document url(about:credits) { a {color: red} }"
+            styles `shouldBe` []
+            let TrivialStyleSheet styles = resolve' $ parse conditional "@document url-prefix('about:') { a {color: green} }"
+            styles `shouldBe` [StyleRule (Element []) [] "", StyleRule (Element [Tag "a"]) [("color", [Ident "green"])] ""]
+            let TrivialStyleSheet styles = resolve' $ parse conditional "@document url-prefix('https:') { a {color: red} }"
+            styles `shouldBe` []
+            let TrivialStyleSheet styles = resolve' $ parse conditional "@document media-document('test') { a {color: green} }"
+            styles `shouldBe` [StyleRule (Element []) [] "", StyleRule (Element [Tag "a"]) [("color", [Ident "green"])] ""]
+            let TrivialStyleSheet styles = resolve' $ parse conditional "@document media-document('other') { a {color: red} }"
+            styles `shouldBe` []
+        it "handles @media" $ do
+            let TrivialStyleSheet styles = resolve' $ parse conditional "@media test { a {color: green} }"
+            styles `shouldBe` [StyleRule (Element []) [] "", StyleRule (Element [Tag "a"]) [("color", [Ident "green"])] ""]
+            let TrivialStyleSheet styles = resolve' $ parse conditional "@media screen { a {color: red} }"
+            styles `shouldBe` []
+
+            let TrivialStyleSheet styles = resolve' $ parse conditional "@media test or screen { a {color: green} }"
+            styles `shouldBe` [StyleRule (Element []) [] "", StyleRule (Element [Tag "a"]) [("color", [Ident "green"])] ""]
+            let TrivialStyleSheet styles = resolve' $ parse conditional "@media test or test {a {color: green} }"
+            styles `shouldBe` [StyleRule (Element []) [] "", StyleRule (Element [Tag "a"]) [("color", [Ident "green"])] ""]
+            let TrivialStyleSheet styles = resolve' $ parse conditional "@media screen or screen {a {color: red} }"
+            styles `shouldBe` []
+            let TrivialStyleSheet styles = resolve' $ parse conditional "@media screen or test {a {color: green} }"
+            styles `shouldBe` [StyleRule (Element []) [] "", StyleRule (Element [Tag "a"]) [("color", [Ident "green"])] ""]
+
+            let TrivialStyleSheet styles = resolve' $ parse conditional "@media test and screen { a {color: red} }"
+            styles `shouldBe` []
+            let TrivialStyleSheet styles = resolve' $ parse conditional "@media test and test { a {color: green} }"
+            styles `shouldBe` [StyleRule (Element []) [] "", StyleRule (Element [Tag "a"]) [("color", [Ident "green"])] ""]
+            let TrivialStyleSheet styles = resolve' $ parse conditional "@media screen and screen { a {color: red} }"
+            styles `shouldBe` []
+            let TrivialStyleSheet styles = resolve' $ parse conditional "@media screen and test {a {color: red} }"
+            styles `shouldBe` []
+
+            let TrivialStyleSheet styles = resolve' $ parse conditional "@media 2 < 3 { a {color: green} }"
+            styles `shouldBe` [StyleRule (Element []) [] "", StyleRule (Element [Tag "a"]) [("color", [Ident "green"])] ""]
+            let TrivialStyleSheet styles = resolve' $ parse conditional "@media 2 < 2 { a {color: red} }"
+            styles `shouldBe` []
+            let TrivialStyleSheet styles = resolve' $ parse conditional "@media 2 < 1 { a {color: red} }"
+            styles `shouldBe` []
+        it "handles @import" $ do
+            let styles = parse conditional "@import url(about:style.css);"
+            extractImports' styles `shouldBe` [URI "about:" Nothing "style.css" "" ""]
+            let styles = parse conditional "@import 'about:style.css';"
+            extractImports' styles `shouldBe` [URI "about:" Nothing "style.css" "" ""]
+
+            let styles = parse conditional "@import url(about:style.css) test;"
+            extractImports' styles `shouldBe` [URI "about:" Nothing "style.css" "" ""]
+            let styles = parse conditional "@import url(about:style.css) screen;"
+            extractImports' styles `shouldBe` []
+        -- TODO @supports is harder to test
 
 styleIndex :: StyleIndex
 styleIndex = new
@@ -388,4 +443,13 @@ linkStyle :: TrivialStyleSheet
 linkStyle = TrivialStyleSheet [sampleRule]
 sampleRule :: StyleRule
 sampleRule = StyleRule (Element [Tag "a"]) [("color", [Ident "green"])] ""
-resolve' = resolve (\_ -> B False) (\_ -> B False) emptyStyle
+resolve' = resolve (\var -> B (var == "test")) evalToken emptyStyle
+    where
+        evalToken (Number _ (NVInteger x)) = N $ fromInteger x
+        evalToken (Number _ (NVNumber x)) = N $ toRealFloat x
+        evalToken _ = B False
+extractImports' = extractImports (\var -> B (var == "test")) evalToken
+    where
+        evalToken (Number _ (NVInteger x)) = N $ fromInteger x
+        evalToken (Number _ (NVNumber x)) = N $ toRealFloat x
+        evalToken _ = B False

@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Data.CSS.Preprocessor.Conditions.Expr(
-        Expr, Op(..), parse, eval, Datum(..)
+        Expr, Op(..), parse, parse', eval, Datum(..)
     ) where
 
 import Data.CSS.Syntax.Tokens(Token(..))
@@ -9,7 +9,7 @@ import Data.Text (stripPrefix)
 
 type Expr = [Op]
 data Op = And | Or | Not | Var Text | Tok Token | MkRatio | Func Text [Token]
-    | Less | LessEq | Equal | Greater | GreaterEq deriving Eq
+    | Less | LessEq | Equal | Greater | GreaterEq deriving (Show, Eq)
 
 parse :: Token -> [Token] -> (Expr, [Token])
 parse end toks = let (toks', rest) = break (== end) toks in (parse' toks' [], rest)
@@ -27,7 +27,7 @@ parse' (Ident "only":toks) ops = parse' toks ops
 parse' (Ident "and":toks) ops = pushOp toks And 30 ops
 parse' (Ident "or":toks) ops = pushOp toks Or 30 ops
 parse' (Delim '<':Delim '=':toks) ops = pushOp toks LessEq 40 ops
-parse' (Delim '<':toks) ops = pushOp toks LessEq 40 ops
+parse' (Delim '<':toks) ops = pushOp toks Less 40 ops
 parse' (Delim '>':Delim '=':toks) ops = pushOp toks GreaterEq 40 ops
 parse' (Delim '>':toks) ops = pushOp toks Greater 40 ops
 parse' (Colon:tok:toks) ops = Tok tok : pushOp toks Equal 40 ops
@@ -65,7 +65,9 @@ eval' (B y:B x:stack) v t (And:ops) = eval' (B (x && y):stack) v t ops
 eval' (B y:B x:stack) v t (Or:ops) = eval' (B (x || y):stack) v t ops
 eval' (B x:stack) v t (Not:ops) = eval' (B (not x):stack) v t ops
 eval' stack v t (Var name:ops) = eval' (v name:stack) v t ops
-eval' stack v t (Tok tok:ops) = eval' (t tok:stack) v t ops
+-- Have tokens lower to variables, to make things easier for the callee.
+eval' stack v t (Tok tok:ops) | t tok /= B False = eval' (t tok:stack) v t ops
+eval' stack v t (Tok (Ident name):ops) = eval' (v name:stack) v t ops
 -- TODO: How should I handle ratios?
 eval' (N y:N x:stack) v t (MkRatio:ops) = eval' (Ratio x y:stack) v t ops
 eval' (N y:N x:stack) v t (Less:ops) = eval' (B (x < y):stack) v t ops
