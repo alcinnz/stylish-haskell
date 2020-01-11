@@ -10,7 +10,7 @@ name:                stylist
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             1.1.0.0
+version:             1.1.1.0
 
 -- A short (one-line) description of the package.
 synopsis:            Apply CSS styles to a document tree.
@@ -53,19 +53,18 @@ source-repository head
 
 library
   -- Modules exported by the library.
-  exposed-modules:     Data.CSS.Syntax.StyleSheet, Data.CSS.Syntax.Selector, Data.CSS.Style, Data.CSS.Preprocessor.Conditions
+  exposed-modules:     Data.CSS.Syntax.StyleSheet, Data.CSS.Syntax.Selector, Data.CSS.Style, Data.CSS.Preprocessor.Conditions, Data.CSS.Preprocessor.Conditions.Expr
   
   -- Modules included in this library but not exported.
   other-modules:       Data.CSS.Syntax.StylishUtil,
                        Data.CSS.Style.Importance, Data.CSS.Style.Common, Data.CSS.Style.Cascade,
-                       Data.CSS.Style.Selector.Index, Data.CSS.Style.Selector.Interpret, Data.CSS.Style.Selector.Specificity,
-                       Data.CSS.Preprocessor.Conditions.Expr
+                       Data.CSS.Style.Selector.Index, Data.CSS.Style.Selector.Interpret, Data.CSS.Style.Selector.Specificity
   
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.9 && <4.10, css-syntax >=0.1 && <0.2, text,
+  build-depends:       base >=4.9 && <=4.12, css-syntax >=0.1 && <0.2, text,
                         unordered-containers >= 0.2 && <0.3, hashable,
                         network-uri >= 2.6 && <2.7
   
@@ -83,7 +82,7 @@ test-suite test-stylist
   type:     exitcode-stdio-1.0
   main-is:              Test.hs
   other-modules:        Data.CSS.Syntax.StyleSheet, Data.CSS.Syntax.Selector, Data.CSS.Style
-  build-depends:       base >=4.9 && <4.10, css-syntax >=0.1 && <0.2, text,
+  build-depends:       base >=4.9 && <=4.12, css-syntax >=0.1 && <0.2, text,
                         unordered-containers >= 0.2 && <0.3, hashable,
                         network-uri >= 2.6 && <2.7, hspec, QuickCheck,
                         scientific >= 0.3 && <1.0

@@ -1,8 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Data.HTML2CSS(
-        externalStyles, externalStylesForURL, internalStyles, internalStylesForURL,
-        cssPriorityAgent, cssPriorityUser, cssPriorityAuthor,
-        traverseStyles, traversePrepopulatedStyles, traverseStyles', elToStylish
+        externalStyles, externalStylesForURL, internalStyles, internalStylesForURL, -- legacy
+        html2css, cssPriorityAgent, cssPriorityUser, cssPriorityAuthor, -- parsing
+        traverseStyles, traversePrepopulatedStyles, traverseStyles', elToStylish -- application
     ) where
 
 import qualified Data.List as L
@@ -15,6 +15,8 @@ import qualified Text.XML as XML
 import Data.CSS.Syntax.StyleSheet
 import Data.CSS.Style
 import Data.CSS.Syntax.Tokens (tokenize)
+import Data.CSS.Preprocessor.Conditions
+import qualified Data.CSS.Preprocessor.Conditions.Expr as Query
 
 import Network.URI
 
@@ -25,6 +27,30 @@ cssPriorityUser = setPriority 2
 cssPriorityAuthor = setPriority 3
 
 ---- Parsing
+html2css :: PropertyParser p => XML.Document -> URI -> ConditionalStyles p
+html2css xml url = ConditionalStyles {
+    hostURL = url,
+    mediaDocument = "document",
+    rules = Priority 3 : html2css' (XML.documentRoot xml) (conditionalStyles url "document"),
+    propertyParser = temp
+}
+
+html2css' :: PropertyParser p => XML.Element -> ConditionalStyles p -> [ConditionalRule p]
+html2css' (XML.Element (XML.Name "style" _ _) attrs children) base =
+    [Internal (parseMediaQuery attrs) (parseForURL base (hostURL base) $ strContent children)]
+html2css' (XML.Element (XML.Name "link" _ _) attrs _) base
+    | Just link <- "href" `M.lookup` attrs,
+        Just "stylesheet" <- "rel" `M.lookup` attrs,
+        Just uri <- parseURIReference $ Txt.unpack link =
+            [External (parseMediaQuery attrs) (relativeTo uri $ hostURL base)]
+html2css' (XML.Element _ _ children) base = concat [html2css' el base | XML.NodeElement el <- children]
+
+parseMediaQuery :: M.Map XML.Name Txt.Text -> Query.Expr
+parseMediaQuery attrs
+    | Just text <- "media" `M.lookup` attrs = Query.parse' (tokenize text) []
+    | otherwise = []
+
+---- Parsing (legacy)
 externalStyles :: StyleSheet s => s -> (M.Map XML.Name Txt.Text -> Bool) ->
         XML.Element -> (URI -> IO Txt.Text) -> IO s
 externalStyles a b c d = externalStylesForURL a b c nullURI d

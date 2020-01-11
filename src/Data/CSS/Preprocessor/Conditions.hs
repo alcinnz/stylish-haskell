@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Data.CSS.Preprocessor.Conditions(
-        ConditionalStyles(..), conditionalStyles,
+        ConditionalStyles(..), conditionalStyles, ConditionalRule(..),
         extractImports, resolveImports, loadImports, resolve,
         Datum(..)
     ) where
