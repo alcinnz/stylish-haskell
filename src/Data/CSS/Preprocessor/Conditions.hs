@@ -126,22 +126,20 @@ resolveImports self responses = self {rules = map resolveImport $ rules self}
             Internal cond body
         resolveImport x = x
 
+-- | Evaluates a given "loader" to resolve any `@import` rules.
 loadImports :: PropertyParser p => (URI -> IO Text) -> (Text -> Query.Datum) -> (Token -> Query.Datum) ->
         ConditionalStyles p -> [URI] -> IO (ConditionalStyles p)
 loadImports loader vars evalToken self blocklist = do
         let imports = extractImports vars evalToken self
-        imported <- loadAll [url | url <- imports, url `notElem` blocklist] Nothing
-        return $ resolveImports self imported
-    where
-        loadAll urls Nothing = loadAll urls $ Just urls
-        loadAll (url:urls) (Just blocklist') = do
+        let urls = [url | url <- imports, url `notElem` blocklist]
+        imported <- forConcurrently urls $ \url -> do
             source <- loader url
             let parsed = parse self {rules = []} source
-            styles <- loadImports loader vars evalToken parsed (blocklist ++ blocklist')
-            rest <- loadAll urls $ Just blocklist'
-            return ((url, styles):rest)
-        loadAll [] _ = return []
+            styles <- loadImports loader vars evalToken parsed (blocklist ++ urls)
+            return (url, styles)
+        return $ resolveImports self imported
 
+-- | Evaluates any media queries, returning a new StyleSheet with the queued operations.
 resolve :: StyleSheet s => (Text -> Query.Datum) -> (Token -> Query.Datum) ->
         s -> ConditionalStyles p -> s
 resolve v t styles self = resolve' v t (reverse $ rules self) styles
