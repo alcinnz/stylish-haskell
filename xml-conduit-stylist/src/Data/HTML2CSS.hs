@@ -17,7 +17,6 @@ import Data.CSS.Style
 import Data.CSS.Syntax.Tokens (tokenize)
 import Data.CSS.Preprocessor.Conditions
 import qualified Data.CSS.Preprocessor.Conditions.Expr as Query
-
 import Network.URI
 
 ---- Constants
@@ -28,7 +27,7 @@ cssPriorityAuthor = setPriority 3
 
 ---- Parsing
 html2css :: PropertyParser p => XML.Document -> URI -> ConditionalStyles p
-html2css xml url = ConditionalStyles {
+html2css xml url = testIsStyled $ ConditionalStyles {
     hostURL = url,
     mediaDocument = "document",
     rules = Priority 3 : html2css' (XML.documentRoot xml) (conditionalStyles url "document"),

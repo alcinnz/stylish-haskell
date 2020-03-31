@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Data.CSS.Preprocessor.Conditions(
         ConditionalStyles(..), conditionalStyles, ConditionalRule(..),
-        extractImports, resolveImports, loadImports, resolve,
+        extractImports, resolveImports, loadImports, resolve, testIsStyled,
         Datum(..)
     ) where
 
@@ -16,19 +16,29 @@ import Data.CSS.Style (PropertyParser(..))
 import Data.Text.Internal (Text(..))
 import Data.Text (unpack)
 import Network.URI (URI(..), URIAuth(..), parseURI)
+import Control.Concurrent.Async (forConcurrently)
 
 import Data.List
 
+-- | Collects and evaluates conditional at-rules.
 data ConditionalStyles p = ConditionalStyles {
+    -- | The URL to the webpage being styled, for `@document` rules.
     hostURL :: URI,
+    -- | The type of document, `@document domain(...)` rules.
     mediaDocument :: String,
+    -- | Whether the page provided any of it's own styling (valid or not)
+    isUnstyled :: Bool,
+    -- | Queued style rules, to be evaluated later.
     rules :: [ConditionalRule p],
+    -- | PropertyParser to test against for `@supports` rules.
     propertyParser :: p
 }
 
+-- | Constructs an empty `ConditionalStyles`.
 conditionalStyles :: PropertyParser p => URI -> String -> ConditionalStyles p
-conditionalStyles uri mediaDocument' = ConditionalStyles uri mediaDocument' [] temp
+conditionalStyles uri mediaDocument' = ConditionalStyles uri mediaDocument' False [] temp
 
+-- | Style rules that can be queued in a `ConditionalStyles`.
 data ConditionalRule p = Priority Int | StyleRule' StyleRule | AtRule Text [Token] |
     External Query.Expr URI | Internal Query.Expr (ConditionalStyles p)
 
@@ -66,6 +76,10 @@ instance PropertyParser p => StyleSheet (ConditionalStyles p) where
     addAtRule self "document" (Function "media-document":String match:RightParen:toks)
         | unpack match == mediaDocument self = parseAtBlock self toks
         | otherwise = addAtRule self "document" toks
+    -- Rhapsode-specific: matches if the document didn't provide any of it's own stylings.
+    addAtRule self "document" (Ident "unstyled":toks)
+        | isUnstyled self = parseAtBlock self toks
+        | otherwise = addAtRule self "document" toks
     -- TODO Support regexp() conditions, requires new dependency
     addAtRule self "document" tokens = (self, skipAtRule tokens)
 
@@ -87,6 +101,10 @@ instance PropertyParser p => StyleSheet (ConditionalStyles p) where
 
     addAtRule self rule tokens = let (block, rest) = scanAtRule tokens in
         (addRule' self $ AtRule rule block, rest)
+
+testIsStyled :: ConditionalStyles p -> ConditionalStyles p
+testIsStyled styles = styles { isUnstyled = null $ rules styles }
+
 --------
 ---- @import/@media
 --------
