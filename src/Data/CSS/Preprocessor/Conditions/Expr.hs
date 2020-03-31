@@ -55,6 +55,7 @@ pushOp toks op b ops = parse' toks ((op, b):ops)
 --------
 ---- Shunting Yard Evaluator
 --------
+-- | Dynamic types for evaluating media queries.
 data Datum = B Bool | N Float | Ratio Float Float deriving Eq
 
 eval :: (Text -> Datum) -> (Token -> Datum) -> Expr -> Bool

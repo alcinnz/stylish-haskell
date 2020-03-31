@@ -21,16 +21,22 @@ import Data.HashMap.Strict (HashMap, lookupDefault, fromList)
 import Data.Text (isPrefixOf)
 import Data.List (elemIndex)
 
+-- | A parsed CSS stylesheet from which you can query styles to match an element.
 type QueryableStyleSheet parser = QueryableStyleSheet' (ImportanceSplitter (
         PropertyExpander parser (OrderedRuleStore (InterpretedRuleStore StyleIndex))
     )) parser
 
+-- | More generic version of `QueryableStyleSheet`.
 data QueryableStyleSheet' store parser = QueryableStyleSheet' {
+    -- | Internal datastructure for efficient style lookup.
     store :: store,
+    -- | The "PropertyParser" to use for property syntax validation.
     parser :: parser,
+    -- | Whether author, useragent, or user styles are currently being parsed.
     priority :: Int -- author vs user agent vs user styles
 }
 
+-- | Constructs an empty QueryableStyleSheet'.
 queryableStyleSheet :: PropertyParser p => QueryableStyleSheet p
 queryableStyleSheet = QueryableStyleSheet' {store = new, parser = temp, priority = 0}
 
@@ -41,14 +47,17 @@ instance (RuleStore s, PropertyParser p) => StyleSheet (QueryableStyleSheet' s p
         }
 
 --- Reexpose cascade methods
+-- | Looks up style rules matching the specified element, grouped by psuedoelement.
 queryRules :: (PropertyParser p, RuleStore s) =>
     QueryableStyleSheet' s p -> Element -> HashMap Text [StyleRule']
 queryRules (QueryableStyleSheet' store' _ _) = Cascade.query store'
 
+-- | Selects used property values from the given style rules,
+-- & populates into a new `PropertyParser` inheriting from the one given.
 cascade' :: PropertyParser p => [StyleRule'] -> Props -> p -> p
 cascade' = Cascade.cascade
 
---- Facade for trivial cases
+-- | Facade over `queryRules` & `cascade'` for simple cases you don't care about psuedoelements.
 cascade :: PropertyParser p => QueryableStyleSheet p -> Element -> Props -> p -> p
 cascade self el = cascade' $ lookupDefault [] "" $ queryRules self el
 
@@ -71,6 +80,7 @@ expandProperties _ [] = []
 --------
 ---- var()
 --------
+-- | `PropertyParser` that lowers var() calls before forwarding to another.
 data VarParser a = VarParser {vars :: Props, innerParser :: a}
 
 instance PropertyParser p => PropertyParser (VarParser p) where

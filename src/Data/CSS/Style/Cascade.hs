@@ -12,22 +12,29 @@ import Data.CSS.Syntax.Tokens
 import Data.HashMap.Strict
 import Data.Text (unpack, pack, isPrefixOf)
 
+-- | Defines how to parse CSS properties into an output "style" format.
 class PropertyParser a where
+    -- | Default styles.
     temp :: a
+    -- | Creates a style inherited from a parent style.
     inherit :: a -> a
     inherit = id
 
+    -- | Expand a shorthand property into longhand properties.
     shorthand :: a -> Text -> [Token] -> [(Text, [Token])]
     shorthand self key value | Just _ <- longhand self self key value = [(key, value)]
         | otherwise = []
     -- longhand parent self name value
     longhand :: a -> a -> Text -> [Token] -> Maybe a
 
+    -- | Retrieve stored variables, optional.
     getVars :: a -> Props
     getVars _ = []
+    -- | Save variable values, optional.
     setVars :: Props -> a -> a
     setVars _ = id
 
+-- | Gather properties into a hashmap.
 data TrivialPropertyParser = TrivialPropertyParser (HashMap String [Token])
 instance PropertyParser TrivialPropertyParser where
     temp = TrivialPropertyParser empty

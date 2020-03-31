@@ -115,10 +115,12 @@ parseAtImport self src toks
         (addRule' self $ External cond uri, toks')
 parseAtImport self _ toks = (self, skipAtRule toks)
 
+-- | Returns `@import` URLs that need to be imported.
 extractImports :: (Text -> Query.Datum) -> (Token -> Query.Datum) -> ConditionalStyles p -> [URI]
 extractImports vars evalToken self =
     [uri | External cond uri <- rules self, Query.eval vars evalToken cond]
 
+-- | Substitutes external values in for `@import` rules.
 resolveImports :: ConditionalStyles p -> [(URI, ConditionalStyles p)] -> ConditionalStyles p
 resolveImports self responses = self {rules = map resolveImport $ rules self}
     where
