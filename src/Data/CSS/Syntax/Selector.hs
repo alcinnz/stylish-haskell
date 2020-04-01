@@ -1,3 +1,5 @@
+-- | Parses CSS selectors
+-- See `parseSelectors`
 module Data.CSS.Syntax.Selector(
         Selector(..), SimpleSelector(..), PropertyTest(..),
         parseSelectors
@@ -8,18 +10,31 @@ import Data.CSS.Syntax.StylishUtil
 
 import Data.Text.Internal (Text(..))
 
--- type Selector = [SimpleSelector]
-data Selector = Element [SimpleSelector] |
-    Child Selector [SimpleSelector] | Descendant Selector [SimpleSelector] |
-    Adjacent Selector [SimpleSelector] | Sibling Selector [SimpleSelector]
+-- | A CSS "selector" indicating which elements should be effected by CSS.
+data Selector = Element [SimpleSelector] -- ^ Selects a single element.
+    | Child Selector [SimpleSelector] -- ^ Represents "a > b" operator.
+    | Descendant Selector [SimpleSelector] -- ^ Represents "a b" operator.
+    | Adjacent Selector [SimpleSelector] -- ^ Represents "a + b" operator.
+    | Sibling Selector [SimpleSelector] -- ^ Represents "a ~ b" operator.
     deriving (Show, Eq)
-data SimpleSelector = Tag Text | Id Text | Class Text | Property Text PropertyTest |
-    Psuedoclass Text [Token]
+-- | An individual test comprising a CSS stylesheet.
+data SimpleSelector = Tag Text -- ^ Matches a tagname, e.g. "a"
+    | Id Text -- ^ Matches the "id" attribute, e.g. "#header"
+    | Class Text -- ^ Matches the "class" attribute, e.g. ".ad"
+    | Property Text PropertyTest -- ^ Matches a specified property
+    | Psuedoclass Text [Token] -- ^ Matches psuedoclasses provided by the caller (via a nameless property).
     deriving (Show, Eq)
-data PropertyTest = Exists | Equals Text | Suffix Text | Prefix Text | Substring Text |
-    Include Text | Dash Text
+-- | How should a property be matched.
+data PropertyTest = Exists -- ^ Matches whether an attribute actually exists, e.g. "[title]"
+    | Equals Text -- ^ Matches whether the attribute is exactly equal to the value, e.g. "="
+    | Suffix Text -- ^ Matches whether attribute ends with the given value, e.g. "$="
+    | Prefix Text -- ^ Matches whether attribute starts with the given value, e.g. "^="
+    | Substring Text -- ^ Matches whether the attribute contains the given value, e.g. "*="
+    | Include Text -- ^ Is one of the whitespace-seperated values the one specified? e.g. "~="
+    | Dash Text -- ^ Matches whitespace seperated values, or their "-"-seperated prefixes. e.g. "|="
     deriving (Show, Eq)
 
+-- | Parses a CSS selector.
 parseSelectors :: Parser [Selector]
 parseSelectors tokens = concatP (:) parseCompound parseSelectorsTail $ skipSpace tokens
 parseSelectorsTail :: Parser [Selector]

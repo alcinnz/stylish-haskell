@@ -1,4 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
+-- | Parses a CSS stylesheet
+-- See `StyleSheet` & `parseForURL`.
 module Data.CSS.Syntax.StyleSheet (
         parse, parse', parseForURL, TrivialStyleSheet(..),
         StyleSheet(..), skipAtRule, scanAtRule, scanBlock, skipSpace,
@@ -20,20 +22,28 @@ import Network.URI (parseRelativeReference, relativeTo, uriToString, URI(..))
 --------
 ---- Output type class
 --------
+-- | Describes how to store, and to some extent parse, CSS stylesheets.
+-- These methods are used to construct the results from `parse`, etc.
 class StyleSheet s where
+    -- | Sets the stylesheet priority (useragent vs user vs author), optional.
     setPriority :: Int -> s -> s
     setPriority _ = id
+    -- | Stores a parsed selector+properties rule.
     addRule :: s -> StyleRule -> s
+    -- | Stores and parses an identified at-rule.
     addAtRule :: s -> Text -> [Token] -> (s, [Token])
     addAtRule self _ tokens = (self, skipAtRule tokens)
 
+-- | Stores the parsed selector*s*+proeprties rule.
 addRules :: StyleSheet ss => ss -> ([Selector], ([(Text, [Token])], Text)) -> ss
 addRules self (selector:selectors, val@(props, psuedoel)) = addRules self' (selectors, val)
     where self' = addRule self $ StyleRule selector props psuedoel
 addRules self ([], _) = self
 
+-- | The properties to set for elements matching the given selector.
 data StyleRule = StyleRule Selector [(Text, [Token])] Text deriving (Show, Eq)
 
+-- | Gathers StyleRules into a list, mainly for testing.
 data TrivialStyleSheet = TrivialStyleSheet [StyleRule] deriving (Show, Eq)
 instance StyleSheet TrivialStyleSheet where
     addRule (TrivialStyleSheet self) rule = TrivialStyleSheet $ rule:self
@@ -41,9 +51,11 @@ instance StyleSheet TrivialStyleSheet where
 --------
 ---- Basic parsing
 --------
+-- | Parse a CSS stylesheet
 parse :: StyleSheet s => s -> Text -> s
 parse stylesheet source = parse' stylesheet $ tokenize source
 
+-- | Parse a CSS stylesheet, resolving all URLs to absolute form.
 parseForURL :: StyleSheet s => s -> URI -> Text -> s
 parseForURL stylesheet base source = parse' stylesheet $ rewriteURLs $ tokenize source
     where
@@ -54,6 +66,7 @@ parseForURL stylesheet base source = parse' stylesheet $ rewriteURLs $ tokenize 
         rewriteURLs (tok:toks) = tok : rewriteURLs toks
         rewriteURLs [] = []
 
+-- | Parse a tokenized (via `css-syntax`) CSS stylesheet
 parse' :: StyleSheet t => t -> [Token] -> t
 -- Things to skip.
 parse' stylesheet (Whitespace:tokens) = parse' stylesheet tokens
@@ -71,6 +84,7 @@ parse' stylesheet tokens = parse' (addRules stylesheet rule) tokens'
 --------
 ---- Property parsing
 --------
+-- | Parse "{key: value; ...}" property values, with a psuedoelement.
 parseProperties :: Parser ([(Text, [Token])], Text)
 parseProperties (LeftCurlyBracket:tokens) = noPsuedoel $ parseProperties' tokens
 parseProperties (Whitespace:tokens) = parseProperties tokens
@@ -83,6 +97,7 @@ parseProperties [] = noPsuedoel ([], [])
 noPsuedoel :: (x, y) -> ((x, Text), y)
 noPsuedoel (val, tokens) = ((val, ""), tokens)
 
+-- | Parse "key: value;"... property values, as per the HTML "style" property.
 parseProperties' :: Parser [(Text, [Token])]
 parseProperties' (Whitespace:tokens) = parseProperties' tokens
 parseProperties' (Ident name:tokens)
@@ -96,6 +111,7 @@ parseProperties' tokens = parseProperties' (skipValue tokens)
 --------
 ---- Skipping/Scanning utilities
 --------
+-- | Returns tokens before & after an at-rule value, terminated after a curly-bracketed block or a semicolon.
 scanAtRule :: Parser [Token]
 scanAtRule (Semicolon:tokens) = ([Semicolon], tokens)
 scanAtRule tokens@(LeftCurlyBracket:_) = scanInner tokens $ \rest -> ([], rest)
@@ -110,9 +126,11 @@ scanAtRule (RightSquareBracket:tokens) = ([], RightSquareBracket:tokens)
 
 scanAtRule tokens = capture scanAtRule tokens
 
+-- | Returns tokens after an at-rule, as per `scanAtRule`.
 skipAtRule :: [Token] -> [Token]
 skipAtRule tokens = snd $ scanAtRule tokens
 
+-- | Returns tokens before & after a semicolon.
 scanValue :: Parser [Token]
 scanValue (Semicolon:tokens) = ([], tokens)
 scanValue (Whitespace:tokens) = scanValue tokens
@@ -128,5 +146,6 @@ scanValue (RightSquareBracket:tokens) = ([], RightSquareBracket:tokens)
 
 scanValue tokens = capture scanValue tokens
 
+-- | Returns tokens after a semicolon.
 skipValue :: [Token] -> [Token]
 skipValue tokens = snd $ scanValue tokens

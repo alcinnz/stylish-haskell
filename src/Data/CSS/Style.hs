@@ -1,4 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
+-- | Queries computed styles out of a specially-parsed CSS stylesheet.
+-- See in particular `QueryableStyleSheet`, `queryRules`, & `cascade'`.
 module Data.CSS.Style(
         QueryableStyleSheet, QueryableStyleSheet'(..), queryableStyleSheet,
         queryRules,

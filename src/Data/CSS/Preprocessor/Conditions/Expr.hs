@@ -1,4 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
+-- | Evaluates CSS media queries for @import & @media.
+-- INTERNAL MODULE
 module Data.CSS.Preprocessor.Conditions.Expr(
         Expr, Op(..), parse, parse', eval, Datum(..)
     ) where
@@ -7,16 +9,30 @@ import Data.CSS.Syntax.Tokens(Token(..))
 import Data.Text.Internal (Text(..))
 import Data.Text (stripPrefix)
 
+-- | A parsed (post-order) expression.
 type Expr = [Op]
-data Op = And | Or | Not | Var Text | Tok Token | MkRatio | Func Text [Token]
-    | Less | LessEq | Equal | Greater | GreaterEq deriving (Show, Eq)
+-- | Operators understood by media queries.
+data Op = And -- ^ Is true if both operands are true
+    | Or -- ^ Is true if either operand is true
+    | Not -- ^ Is true if it's operand isn't.
+    | Var Text -- ^ Queries the value of an externally-specified parameter.
+    | Tok Token -- ^ Tokens to be evaluated as specified by caller.
+    | MkRatio -- ^ Pushes a ratio value to stack, for querying screensize.
+    | Less -- ^ Is the left operand smaller than right?
+    | LessEq -- ^ Is the left operand smaller or the same as right?
+    | Equal -- ^ Are the operands the same?
+    | Greater -- ^ Is the left operand bigger than right?
+    | GreaterEq -- ^ Is the left operand bigger or the same as right?
+    deriving (Show, Eq)
 
+-- | Parses a media query to postorder form, returning the tokens after the given delimiter.
 parse :: Token -> [Token] -> (Expr, [Token])
 parse end toks = let (toks', rest) = break (== end) toks in (parse' toks' [], rest)
 
 --------
 ---- Shunting Yard parser
 --------
+-- | Parses a media query to postorder form, given an operator stack.
 parse' :: [Token] -> [(Op, Int)] -> Expr
 parse' (Whitespace:toks) ops = parse' toks ops
 
@@ -58,6 +74,7 @@ pushOp toks op b ops = parse' toks ((op, b):ops)
 -- | Dynamic types for evaluating media queries.
 data Datum = B Bool | N Float | Ratio Float Float deriving Eq
 
+-- | Evaluates a media query with the given functions for evaluating vars & tokens.
 eval :: (Text -> Datum) -> (Token -> Datum) -> Expr -> Bool
 eval = eval' []
 

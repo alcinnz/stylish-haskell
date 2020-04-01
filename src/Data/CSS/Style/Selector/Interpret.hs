@@ -1,4 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
+-- | Evaluates CSS selectors over an element.
+-- INTERNAL MODULE.
 module Data.CSS.Style.Selector.Interpret(
         compile, SelectorFunc,
         InterpretedRuleStore(..)
@@ -10,9 +12,11 @@ import Data.Text (unpack)
 import Data.List
 import Data.Maybe
 
+-- | A compiled(?) CSS selector.
 type SelectorFunc = Element -> Bool
 type AttrsFunc = [Attribute] -> Bool
 
+-- | Converts a parsed CSS selector into a callable function.
 compile :: Selector -> SelectorFunc
 compile (Element sel) = compileInner sel
 compile (Child upSel sel) = direct parent (compile upSel) $ compileInner sel
@@ -88,6 +92,7 @@ hasLang expected value = expected == value || isPrefixOf (expected ++ "-") value
 --------
 ---- RuleStore wrapper
 --------
+-- | Compiles & fully evaluates CSS selectors.
 data InterpretedRuleStore inner = InterpretedRuleStore inner
 instance RuleStore inner => RuleStore (InterpretedRuleStore inner) where
     new = InterpretedRuleStore new

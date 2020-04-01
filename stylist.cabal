@@ -10,7 +10,7 @@ name:                stylist
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             1.1.1.0
+version:             1.2.0.0
 
 -- A short (one-line) description of the package.
 synopsis:            Apply CSS styles to a document tree.
@@ -84,6 +84,6 @@ test-suite test-stylist
   other-modules:        Data.CSS.Syntax.StyleSheet, Data.CSS.Syntax.Selector, Data.CSS.Style
   build-depends:       base >=4.9 && <=4.12, css-syntax >=0.1 && <0.2, text,
                         unordered-containers >= 0.2 && <0.3, hashable,
-                        network-uri >= 2.6 && <2.7, hspec, QuickCheck,
+                        network-uri >= 2.6 && <2.7, async >= 2.1 && <2.3, hspec, QuickCheck,
                         scientific >= 0.3 && <1.0
   ghc-options: -Wall

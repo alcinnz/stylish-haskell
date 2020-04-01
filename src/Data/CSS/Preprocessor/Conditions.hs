@@ -1,4 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
+-- | Evaluates conditional CSS @rules.
+-- Parse a CSS stylesheet to `ConditionalStyles` to evaluate @document & @supports rules.
+-- Call `loadImports` to resolve any @import rules to @media rules.
+-- And call `resolve` to convert into another `StyleSheet` instance whilst resolving @media rules.
 module Data.CSS.Preprocessor.Conditions(
         ConditionalStyles(..), conditionalStyles, ConditionalRule(..),
         extractImports, resolveImports, loadImports, resolve, testIsStyled,
@@ -102,6 +106,8 @@ instance PropertyParser p => StyleSheet (ConditionalStyles p) where
     addAtRule self rule tokens = let (block, rest) = scanAtRule tokens in
         (addRule' self $ AtRule rule block, rest)
 
+-- | Flags whether any style rules have been applied yet,
+-- for the sake of evaluating "@document unstyled {...}".
 testIsStyled :: ConditionalStyles p -> ConditionalStyles p
 testIsStyled styles = styles { isUnstyled = null $ rules styles }
 

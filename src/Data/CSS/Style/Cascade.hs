@@ -1,4 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
+-- | Applies CSS selection, cascade, & inheritance.
+-- INTERNAL MODULE.
 module Data.CSS.Style.Cascade(
         query, cascade,
         TrivialPropertyParser(..), PropertyParser(..), Props
@@ -41,12 +43,14 @@ instance PropertyParser TrivialPropertyParser where
     longhand _ (TrivialPropertyParser self) key value =
         Just $ TrivialPropertyParser $ insert (unpack key) value self
 
+-- | "key: value;" entries to be parsed into an output type.
 type Props = [(Text, [Token])]
 
 --------
 ---- Query/Psuedo-elements
 --------
 
+-- | Looks up style rules for an element, grouped by psuedoelement.
 query :: RuleStore s => s -> Element -> HashMap Text [StyleRule']
 query self el = Prelude.foldr yield empty $ lookupRules self el
     where yield rule store = insertWith (++) (psuedoElement rule) [resolveAttr rule el] store
@@ -55,6 +59,8 @@ query self el = Prelude.foldr yield empty $ lookupRules self el
 ---- Cascade/Inheritance
 --------
 
+-- | Applies cascade for the given `StyleRule'`s & explicit styles,
+-- parsed to a value of the same `PropertyParser` type passed in & inheriting from it.
 cascade :: PropertyParser p => [StyleRule'] -> Props -> p -> p
 cascade styles overrides base =
     construct base $ toList $ cascadeRules (getVars base ++ overrides) styles

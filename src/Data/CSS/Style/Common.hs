@@ -1,3 +1,5 @@
+-- | Central infrastructure for implementing queryable stylesheets.
+-- NOTE: This internal module isn't intended to be fully documented.
 module Data.CSS.Style.Common(
         RuleStore(..), StyleRule'(..), selector, properties, psuedoElement, styleRule',
         Element(..), Attribute(..),
@@ -10,12 +12,18 @@ import Data.CSS.Syntax.Selector
 import Data.CSS.Syntax.Tokens
 import Data.Text.Internal (Text(..))
 
+-- | An inversely-linked tree of elements, to apply CSS selectors to.
 data Element = ElementNode {
+    -- | The element's parent in the tree.
     parent :: Maybe Element,
+    -- | The element's previous sibling in the tree.
     previous :: Maybe Element,
+    -- | The element's name.
     name :: Text,
-    attributes :: [Attribute] -- in sorted order.
+    -- | The element's attributes, in sorted order.
+    attributes :: [Attribute]
 }
+-- | A key-value attribute.
 data Attribute = Attribute Text String deriving (Eq, Ord)
 
 class RuleStore a where

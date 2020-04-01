@@ -1,4 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
+-- | Evaluates !important.
+-- INTERNAL MODULE.
 module Data.CSS.Style.Importance (
         ImportanceSplitter(..)
     ) where
@@ -18,6 +20,7 @@ splitProperties [] = ([], [])
 --- NOTE: Prorities are defined with lower numbers being more important,
 ---     so negate to be consistant with other priority sources.
 --- This API decision started out being accidental, but I find it more intuitive.
+-- | Evaluates "!important" by splitting all `StyleRule'` in two.
 data ImportanceSplitter a = ImportanceSplitter a
 instance RuleStore inner => RuleStore (ImportanceSplitter inner) where
     new = ImportanceSplitter new

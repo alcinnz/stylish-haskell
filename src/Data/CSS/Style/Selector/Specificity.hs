@@ -1,4 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
+-- | Sorts `StyleRule'`s by specificity.
+-- INTERNAL MODULE.
 module Data.CSS.Style.Selector.Specificity(
         OrderedRuleStore(..)
     ) where
@@ -27,6 +29,7 @@ computeSpecificity' [] = (0, 0, 0)
 add :: Vec -> Vec -> Vec
 add (a, b, c) (x, y, z) = (a + x, b + y, c + z)
 
+-- | Sorts `StyleRule'`s by their selector specificity.
 data OrderedRuleStore inner = OrderedRuleStore inner Int
 
 instance RuleStore inner => RuleStore (OrderedRuleStore inner) where

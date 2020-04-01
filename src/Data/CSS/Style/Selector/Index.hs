@@ -1,4 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
+-- | Fast lookup & storage for style rules.
+-- INTERNAL MODULE.
 module Data.CSS.Style.Selector.Index (
         StyleIndex(..),
         rulesForElement
@@ -13,6 +15,7 @@ import Data.Hashable
 import Data.Text (unpack, pack)
 import Data.CSS.Syntax.Tokens (serialize) -- for easy hashing
 
+-- | Fast lookup & storage for style rules.
 data StyleIndex = StyleIndex {
     indexed :: HashMap SimpleSelector [StyleRule'],
     unindexed :: [StyleRule']
@@ -31,6 +34,7 @@ instance RuleStore StyleIndex where
             index = indexed self
             rules = unindexed self : Prelude.map get (testsForElement element)
 
+-- | LEGACY TESTING API.
 rulesForElement :: StyleIndex -> Element -> [StyleRule] -- For testing
 rulesForElement self element = Prelude.map inner $ lookupRules self element
 
