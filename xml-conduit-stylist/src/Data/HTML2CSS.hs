@@ -21,16 +21,19 @@ import qualified Data.CSS.Preprocessor.Conditions.Expr as Query
 import Network.URI
 
 ---- Constants
+-- | Set the priority for a CSS stylesheet being parsed.
 cssPriorityAgent, cssPriorityUser, cssPriorityAuthor :: StyleSheet s => s -> s
 cssPriorityAgent = setPriority 1
 cssPriorityUser = setPriority 2
 cssPriorityAuthor = setPriority 3
 
 ---- Parsing
+-- | Converts a parsed XML or HTML file to a `ConditionalStyles` `StyleSheet`.
 html2css :: PropertyParser p => XML.Document -> URI -> ConditionalStyles p
 html2css xml url = testIsStyled $ ConditionalStyles {
     hostURL = url,
     mediaDocument = "document",
+    isUnstyled = False,
     rules = Priority 3 : html2css' (XML.documentRoot xml) (conditionalStyles url "document"),
     propertyParser = temp
 }
